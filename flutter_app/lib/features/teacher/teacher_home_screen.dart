@@ -4,11 +4,20 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme.dart';
 import 'post_homework_modal.dart';
 
+import 'package:provider/provider.dart';
+import '../../core/services/homework_service.dart';
+import '../../core/models/homework_models.dart';
+import '../common/doubt_discussion_screen.dart';
+import 'package:intl/intl.dart';
+
 class TeacherHomeScreen extends StatelessWidget {
   const TeacherHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final homeworkService = context.watch<HomeworkService>();
+    final homeworks = homeworkService.homeworks;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('SchoolConnect'),
@@ -34,18 +43,35 @@ class TeacherHomeScreen extends StatelessWidget {
             const ClassCard(className: 'Class 9B', subject: 'Mathematics', schedule: 'Tue, Thu - 10:00 AM'),
             const ClassCard(className: 'Class 10A', subject: 'Mathematics', schedule: 'Mon, Wed - 11:00 AM'),
             const SizedBox(height: 24),
-            const SectionHeader(title: 'Recent Posts & Status'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SectionHeader(title: 'Recent Posts & Status'),
+                if (homeworks.isNotEmpty)
+                  Text(
+                    '${homeworks.length} Posts',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+              ],
+            ),
             const SizedBox(height: 12),
-            const PostStatusTile(
-              title: 'Chapter 5 Exercises',
-              subtitle: 'Class 8A · 2 hours ago',
-              doubts: 0,
-            ),
-            const PostStatusTile(
-              title: 'Unit Test Announcement',
-              subtitle: 'Class 9B · Yesterday',
-              doubts: 2,
-            ),
+            if (homeworks.isEmpty)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Column(
+                    children: [
+                      Icon(Icons.post_add, size: 48, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      Text('No homework posted yet', style: TextStyle(color: Colors.grey[500])),
+                      const SizedBox(height: 8),
+                      Text('Tap + to post your first homework', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...homeworks.map((hw) => PostStatusTile(homework: hw)),
           ],
         ),
       ),
@@ -57,7 +83,7 @@ class TeacherHomeScreen extends StatelessWidget {
             onPressed: () {
               context.push('/teacher-help-center');
             },
-            backgroundColor: const Color(0xFF1E293B), // Dark color as seen in reference
+            backgroundColor: const Color(0xFF1E293B),
             child: const Icon(LucideIcons.messageSquare, color: Colors.white),
           ),
           const SizedBox(height: 16),
@@ -92,18 +118,20 @@ class GreetingSection extends StatelessWidget {
           child: Text('AS', style: TextStyle(fontSize: 20, color: Colors.white)),
         ),
         const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Good morning, Mrs. Sharma 👋',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Mathematics Teacher',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Good morning, Mrs. Sharma 👋',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Mathematics Teacher',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -148,15 +176,14 @@ class ClassCard extends StatelessWidget {
 }
 
 class PostStatusTile extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final int doubts;
+  final Homework homework;
 
-  const PostStatusTile({super.key, required this.title, required this.subtitle, required this.doubts});
+  const PostStatusTile({super.key, required this.homework});
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -173,20 +200,96 @@ class PostStatusTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      Text(subtitle, style: const TextStyle(color: Colors.grey)),
+                      Text(homework.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('${homework.className} · Just now', style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(LucideIcons.messageSquare, size: 16),
-                  label: Text('Doubts ($doubts)'),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Stack(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DoubtDiscussionScreen(homeworkId: homework.id, isTeacher: true),
+                              ),
+                            );
+                          },
+                          icon: const Icon(LucideIcons.messageSquare, size: 16),
+                          label: Text('Doubts (${homework.totalDoubts})'),
+                        ),
+                        if (homework.unansweredDoubts > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                            ),
+                          ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () => _showAcknowledgeDialog(context, homework),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8.0, top: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(LucideIcons.userCheck, size: 12, color: Colors.green),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${homework.totalAcknowledgments} Acknowledged',
+                              style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAcknowledgeDialog(BuildContext context, Homework homework) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Acknowledgments - ${homework.title}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: homework.acknowledgments.isEmpty
+              ? const Text('No students have acknowledged yet.')
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: homework.acknowledgments.length,
+                  itemBuilder: (context, index) {
+                    final ack = homework.acknowledgments[index];
+                    return ListTile(
+                      dense: true,
+                      title: Text(ack.studentName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('App No: ${ack.applicationNumber}'),
+                      trailing: Text(
+                        DateFormat('h:mm a, MMM d').format(ack.timestamp),
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        ],
       ),
     );
   }

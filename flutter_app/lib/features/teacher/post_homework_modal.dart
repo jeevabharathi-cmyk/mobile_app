@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme.dart';
 
+import 'package:provider/provider.dart';
+import '../../core/services/homework_service.dart';
+
 class PostHomeworkModal extends StatefulWidget {
   const PostHomeworkModal({super.key});
 
@@ -37,6 +40,30 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
         borderSide: const BorderSide(color: SchoolGridTheme.primary, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+
+  void _handlePostHomework() {
+    if (_titleController.text.isEmpty || _descriptionController.text.isEmpty || _dueDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields and select a due date')),
+      );
+      return;
+    }
+
+    context.read<HomeworkService>().postHomework(
+      title: _titleController.text,
+      description: _descriptionController.text,
+      className: _selectedClass,
+      dueDate: _dueDate!,
+    );
+
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Homework posted successfully!'),
+        backgroundColor: Colors.green,
+      ),
     );
   }
 
@@ -187,7 +214,7 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.pop(context),
+                onPressed: _handlePostHomework,
                 icon: const Icon(LucideIcons.send, size: 18),
                 label: const Text('Post Homework'),
               ),

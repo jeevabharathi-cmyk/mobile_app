@@ -25,13 +25,13 @@ class RoleSelectionScreen extends StatelessWidget {
               _RoleButton(
                 title: 'Teacher Portal',
                 icon: Icons.person_4_outlined,
-                onTap: () => context.go('/teacher-home'),
+                onTap: () => context.go('/teacher-login'),
               ),
               const SizedBox(height: 16),
               _RoleButton(
                 title: 'Parent Portal',
                 icon: Icons.family_restroom_outlined,
-                onTap: () => context.go('/parent-home'),
+                onTap: () => context.go('/parent-login'),
                 isAvailable: true,
               ),
             ],

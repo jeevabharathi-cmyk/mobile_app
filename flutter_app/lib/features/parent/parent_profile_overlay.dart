@@ -112,6 +112,9 @@ class ParentProfileOverlay extends StatelessWidget {
       onTap: () {
         if (isLogout) {
           context.go('/auth');
+        } else if (label == 'View Profile') {
+          Navigator.pop(context); // Close dialog
+          context.go('/parent-profile');
         }
       },
       child: Padding(

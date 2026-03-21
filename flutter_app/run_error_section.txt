@@ -1,0 +1,140 @@
+﻿[        ] Task ':app:configureCMakeDebug[arm64-v8a]' is not up-to-date because:
+[        ]   Task.upToDateWhen is false.
+[        ] C/C++: C:\flutter\packages\flutter_tools\gradle\src\main\scripts\CMakeLists.txt debug|arm64-v8a : Start JSON generation. Platform version: 24 min SDK version: arm64-v8a
+[        ] C/C++: C:\flutter\packages\flutter_tools\gradle\src\main\scripts\CMakeLists.txt debug|arm64-v8a : rebuilding JSON C:\Users\jeeva bharathi\OneDrive\Desktop\flutter_mobile app\flutter_app\build\.cxx\debug\m422e786\arm64-v8a\android_gradle_build.json due to:
+[        ] C/C++: C:\flutter\packages\flutter_tools\gradle\src\main\scripts\CMakeLists.txt debug|arm64-v8a : - no fingerprint file, will remove stale configuration folder
+[        ] C/C++: C:\flutter\packages\flutter_tools\gradle\src\main\scripts\CMakeLists.txt debug|arm64-v8a : removing stale contents from 'C:\Users\jeeva bharathi\OneDrive\Desktop\flutter_mobile app\flutter_app\build\.cxx\debug\m422e786\arm64-v8a'
+[        ] C/C++: C:\flutter\packages\flutter_tools\gradle\src\main\scripts\CMakeLists.txt debug|arm64-v8a : JSON generation completed with problem. Exception: java.nio.file.AccessDeniedException: C:\Users\jeeva bharathi\OneDrive\Desktop\flutter_mobile app\flutter_app\build\.cxx\debug\m422e786\arm64-v8a\.cmake\api\v1\query\client-agp
+[        ] C/C++: C:\flutter\packages\flutter_tools\gradle\src\main\scripts\CMakeLists.txt debug|arm64-v8a : Writing build model to C:\Users\jeeva bharathi\OneDrive\Desktop\flutter_mobile app\flutter_app\build\app\intermediates\cxx\debug\m422e786\logs\arm64-v8a\build_model.json
+[  +78 ms] Build c31db06b-2263-4d0a-97bf-5cd3ef0bb428 is closed
+[        ] [Incubating] Problems report is available at: file:///C:/Users/jeeva%20bharathi/OneDrive/Desktop/flutter_mobile%20app/flutter_app/build/reports/problems/problems-report.html
+flutter : [   +1 ms] 
+FAILURE: Build failed 
+with an exception.
+At line:1 char:1
++ flutter run -d 
+emulator-5554 
+--verbose 2>&1 | 
+Out-File -FilePath 
+run_ ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ([   +1 ms] FA   
+ IL...h an exceptio    
+n.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+[   +3 ms] * What went 
+wrong:
+[        ] Execution 
+failed for task ':app:c
+onfigureCMakeDebug[arm6
+4-v8a]'.
+[        ] > java.nio.f
+ile.AccessDeniedExcepti
+on: C:\Users\jeeva bhar
+athi\OneDrive\Desktop\f
+lutter_mobile app\flutt
+er_app\build\.cxx\debug
+\m422e786\arm64-v8a\.cm
+ake\api\v1\query\client
+-agp
+[        ] * Try:
+[        ] > Run with 
+--debug option to get 
+more log output.
+[        ] > Run with 
+--scan to get full 
+insights.
+[        ] > Get more 
+help at https://help.gr
+adle.org.
+[        ] * Exception 
+is:
+[        ] org.gradle.a
+pi.tasks.TaskExecutionE
+xception: Execution 
+failed for task ':app:c
+onfigureCMakeDebug[arm6
+4-v8a]'.
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.ExecuteActions
+TaskExecuter.lambda$exe
+cuteIfValid$1(ExecuteAc
+tionsTaskExecuter.java:
+130)
+[        ] 	at org.grad
+le.internal.Try$Failure
+.ifSuccessfulOrElse(Try
+.java:293)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.ExecuteActions
+TaskExecuter.executeIfV
+alid(ExecuteActionsTask
+Executer.java:128)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.ExecuteActions
+TaskExecuter.execute(Ex
+ecuteActionsTaskExecute
+r.java:116)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.ProblemsTaskPa
+thTrackingTaskExecuter.
+execute(ProblemsTaskPat
+hTrackingTaskExecuter.j
+ava:41)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.FinalizeProper
+tiesTaskExecuter.execut
+e(FinalizePropertiesTas
+kExecuter.java:46)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.ResolveTaskExe
+cutionModeExecuter.exec
+ute(ResolveTaskExecutio
+nModeExecuter.java:51)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.SkipTaskWithNo
+ActionsExecuter.execute
+(SkipTaskWithNoActionsE
+xecuter.java:57)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.SkipOnlyIfTask
+Executer.execute(SkipOn
+lyIfTaskExecuter.java:7
+4)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.CatchException
+TaskExecuter.execute(Ca
+tchExceptionTaskExecute
+r.java:36)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.EventFiringTas
+kExecuter$1.executeTask
+(EventFiringTaskExecute
+r.java:77)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.EventFiringTas
+kExecuter$1.call(EventF
+iringTaskExecuter.java:
+55)
+[        ] 	at org.grad
+le.api.internal.tasks.e
+xecution.EventFiringTas
+kExecuter$1.call(EventF

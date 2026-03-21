@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import 'parent_profile_overlay.dart';
 
+import 'package:provider/provider.dart';
+import '../../core/services/homework_service.dart';
+import '../../core/models/homework_models.dart';
+import '../common/doubt_discussion_screen.dart';
+import 'package:intl/intl.dart';
+
 class ParentHomeScreen extends StatefulWidget {
   const ParentHomeScreen({super.key});
 
@@ -14,6 +20,9 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final homeworkService = context.watch<HomeworkService>();
+    final homeworks = homeworkService.homeworks.where((h) => h.className.contains(_selectedChild.split(' · ')[1])).toList();
+
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 80,
@@ -58,73 +67,59 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         foregroundColor: SchoolGridTheme.primary,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Good morning, Mr. Mehta 👋',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const Text(
-              'Delhi Public School',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                _buildChildChip('Aarav · 8A'),
-                const SizedBox(width: 12),
-                _buildChildChip('Ishita · 5B'),
-              ],
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Today\'s Homework',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            if (_selectedChild == 'Aarav · 8A') ...[
-              const HomeworkCard(
-                subject: 'Mathematics',
-                details: 'Page 45, Ex 1-5',
-                dueDate: 'Tomorrow',
-                status: 'Acknowledge',
+      body: RefreshIndicator(
+        onRefresh: () async => Future.delayed(const Duration(seconds: 1)),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Good morning, Mr. Mehta 👋',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
-              const HomeworkCard(
-                subject: 'Science',
-                details: 'Read Chapter 3',
-                dueDate: 'Today',
-                status: 'Done',
+              const Text(
+                'Delhi Public School',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
-              const HomeworkCard(
-                subject: 'English',
-                details: 'Essay on Environment',
-                dueDate: 'Mar 5',
-                status: 'Acknowledge',
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  _buildChildChip('Aarav · 8A'),
+                  const SizedBox(width: 12),
+                  _buildChildChip('Ishita · 5B'),
+                ],
               ),
-            ] else ...[
-              const HomeworkCard(
-                subject: 'Hindi',
-                details: 'Learn poem',
-                dueDate: 'Today',
-                status: 'Done',
+              const SizedBox(height: 24),
+              const Text(
+                'Today\'s Homework',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const HomeworkCard(
-                subject: 'EVS',
-                details: 'Draw water cycle',
-                dueDate: 'Tomorrow',
-                status: 'Acknowledge',
-              ),
+              const SizedBox(height: 16),
+              if (homeworks.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      children: [
+                        Icon(Icons.assignment_outlined, size: 48, color: Colors.grey[300]),
+                        const SizedBox(height: 16),
+                        Text('No homework posted yet', style: TextStyle(color: Colors.grey[500])),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...homeworks.map((hw) => HomeworkCard(homework: hw)),
+              const SizedBox(height: 16),
+              const AnnouncementTile(count: 2),
             ],
-            const SizedBox(height: 16),
-            const AnnouncementTile(count: 2),
-          ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -158,22 +153,15 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 }
 
 class HomeworkCard extends StatelessWidget {
-  final String subject;
-  final String details;
-  final String dueDate;
-  final String status;
+  final Homework homework;
 
   const HomeworkCard({
     super.key,
-    required this.subject,
-    required this.details,
-    required this.dueDate,
-    required this.status,
+    required this.homework,
   });
 
   @override
   Widget build(BuildContext context) {
-    bool isDone = status == 'Done';
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
@@ -203,12 +191,12 @@ class HomeworkCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        subject,
+                        homework.title,
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        details,
+                        homework.description,
                         style: const TextStyle(color: Color(0xFF64748B)),
                       ),
                       const SizedBox(height: 8),
@@ -217,7 +205,7 @@ class HomeworkCard extends StatelessWidget {
                           const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF64748B)),
                           const SizedBox(width: 4),
                           Text(
-                            'Due: $dueDate',
+                            'Due: ${DateFormat('MMM d').format(homework.dueDate)}',
                             style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                           ),
                         ],
@@ -225,7 +213,7 @@ class HomeworkCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (isDone)
+                if (homework.doubts.any((d) => d.status == DoubtStatus.answered))
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -237,13 +225,38 @@ class HomeworkCard extends StatelessWidget {
                       children: [
                         Icon(Icons.check_circle_outline, color: Color(0xFF16A34A), size: 14),
                         SizedBox(width: 4),
-                        Text('Done', style: TextStyle(color: Color(0xFF16A34A), fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text('Solved', style: TextStyle(color: Color(0xFF16A34A), fontSize: 12, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   )
+                else if (homework.acknowledgments.any((a) => a.applicationNumber == 'APP-2024-001'))
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2FE),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('Acknowledged', style: TextStyle(color: Color(0xFF0369A1), fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'at ${DateFormat('h:mm a').format(homework.acknowledgments.firstWhere((a) => a.applicationNumber == 'APP-2024-001').timestamp)}',
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    ],
+                  )
                 else
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      context.read<HomeworkService>().acknowledgeHomework(
+                        homeworkId: homework.id,
+                        studentName: 'Aarav Mehta',
+                        applicationNumber: 'APP-2024-001',
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF1F5F9),
                       foregroundColor: const Color(0xFF1E293B),
@@ -260,15 +273,35 @@ class HomeworkCard extends StatelessWidget {
             const Divider(height: 1),
             const SizedBox(height: 12),
             GestureDetector(
-              onTap: () {},
-              child: const Row(
-                children: [
-                  Icon(Icons.chat_bubble_outline, size: 16, color: SchoolGridTheme.primary),
-                  SizedBox(width: 8),
-                  Text(
-                    'Ask a Doubt',
-                    style: TextStyle(color: SchoolGridTheme.primary, fontWeight: FontWeight.w500),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DoubtDiscussionScreen(homeworkId: homework.id),
                   ),
+                );
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.chat_bubble_outline, size: 16, color: SchoolGridTheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    homework.doubts.isEmpty ? 'Ask a Doubt' : 'Discussion (${homework.totalDoubts})',
+                    style: const TextStyle(color: SchoolGridTheme.primary, fontWeight: FontWeight.w500),
+                  ),
+                  const Spacer(),
+                  if (homework.unansweredDoubts > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${homework.unansweredDoubts} new',
+                        style: TextStyle(color: Colors.red[700], fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                 ],
               ),
             ),

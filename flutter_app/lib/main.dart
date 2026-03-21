@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'core/services/homework_service.dart';
 import 'core/theme.dart';
 import 'core/app_router.dart';
 
 void main() {
-  runApp(const SchoolGridApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => HomeworkService()),
+      ],
+      child: const SchoolGridApp(),
+    ),
+  );
 }
 
 class SchoolGridApp extends StatelessWidget {
