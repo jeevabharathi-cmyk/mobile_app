@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -48,14 +49,54 @@ class _LoginScreenState extends State<LoginScreen>
   String get _signUpRoute =>
       widget.role == 'teacher' ? '/teacher-signup' : '/parent-signup';
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
+    
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 600), () {
+    
+    try {
+      final supabase = Supabase.instance.client;
+      
+      final response = await supabase.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      
+      final user = response.user;
+      if (user != null) {
+        // Fetch profile to verify role
+        final profileData = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+        
+        final String? userRole = profileData['role'] as String?;
+        
+        if (userRole != widget.role && widget.role != 'admin') {
+          await supabase.auth.signOut();
+          throw AuthException('Authorized access denied: Your account is registered as a $userRole');
+        }
+
+        if (!mounted) return;
+        context.go(_homeRoute);
+      }
+      
+    } on AuthException catch (e) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
-      context.go(_homeRoute);
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/theme.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -50,15 +51,49 @@ class _SignUpScreenState extends State<SignUpScreen>
   String get _loginRoute =>
       widget.role == 'teacher' ? '/teacher-login' : '/parent-login';
 
-  void _handleSignUp() {
+  Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
+    
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 600), () {
+    
+    try {
+      final supabase = Supabase.instance.client;
+      
+      // 1. Sign up user (profile is created automatically via Postgres trigger)
+      final response = await supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        data: {
+          'full_name': _nameController.text.trim(),
+          'role': widget.role,
+        },
+      );
+
+      if (response.user != null) {
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful! Please check your email for confirmation.')),
+        );
+        
+        // After sign-up, navigate to the login screen
+        context.go(_loginRoute);
+      }
+    } on AuthException catch (e) {
       if (!mounted) return;
-      setState(() => _isLoading = false);
-      // After sign-up, navigate to the login screen
-      context.go(_loginRoute);
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override

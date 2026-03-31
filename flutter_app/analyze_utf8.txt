@@ -1,0 +1,8 @@
+﻿Analyzing flutter_app...                                        
+
+warning - Unused import: 'package:flutter/foundation.dart' - lib\core\models\homework_models.dart:1:8 - unused_import
+   info - Use interpolation to compose strings and values - lib\core\services\homework_service.dart:155:13 - prefer_interpolation_to_compose_strings
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\common\doubt_discussion_screen.dart:203:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\teacher\help_center_screen.dart:261:33 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\features\teacher\post_homework_modal.dart:126:15 - deprecated_member_use
+
