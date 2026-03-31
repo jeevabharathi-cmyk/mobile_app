@@ -8,6 +8,8 @@ import '../../core/models/homework_models.dart';
 import '../common/doubt_discussion_screen.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/services/user_service.dart';
+
 class ParentHomeScreen extends StatefulWidget {
   const ParentHomeScreen({super.key});
 
@@ -16,12 +18,48 @@ class ParentHomeScreen extends StatefulWidget {
 }
 
 class _ParentHomeScreenState extends State<ParentHomeScreen> {
-  String _selectedChild = 'Aarav · 8A';
+  String? _selectedChildId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserService>().fetchProfile().then((_) {
+        final children = context.read<UserService>().children;
+        if (children.isNotEmpty) {
+          setState(() => _selectedChildId = children.first.id);
+          context.read<HomeworkService>().fetchHomework(className: children.first.className);
+        }
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final userService = context.watch<UserService>();
     final homeworkService = context.watch<HomeworkService>();
-    final homeworks = homeworkService.homeworks.where((h) => h.className.contains(_selectedChild.split(' · ')[1])).toList();
+
+    if (userService.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final profile = userService.profile;
+    final children = userService.children;
+
+    // Set initial selected child if not set
+    if (_selectedChildId == null && children.isNotEmpty) {
+      _selectedChildId = children.first.id;
+    }
+
+    final selectedChild = children.isEmpty 
+        ? null 
+        : children.firstWhere((c) => c.id == _selectedChildId, orElse: () => children.first);
+
+    final homeworks = selectedChild == null 
+        ? <Homework>[] 
+        : homeworkService.homeworks.where((h) => h.className.contains(selectedChild.className)).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -50,13 +88,19 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
               padding: const EdgeInsets.only(right: 16.0),
               child: Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 16,
                     backgroundColor: SchoolGridTheme.primary,
-                    child: Text('SM', style: TextStyle(fontSize: 12, color: Colors.white)),
+                    child: Text(
+                      profile?.fullName.substring(0, 1).toUpperCase() ?? '?',
+                      style: const TextStyle(fontSize: 12, color: Colors.white),
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  const Text('Sunil', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+                  Text(
+                    profile?.fullName.split(' ').first ?? 'Parent',
+                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+                  ),
                   const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
                 ],
               ),
@@ -68,7 +112,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         elevation: 0,
       ),
       body: RefreshIndicator(
-        onRefresh: () async => Future.delayed(const Duration(seconds: 1)),
+        onRefresh: () async => userService.fetchProfile(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16.0),
@@ -77,24 +121,29 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
             children: [
               Row(
                 children: [
-                  const Text(
-                    'Good morning, Mr. Mehta 👋',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    'Good morning, ${profile?.fullName ?? "Parent"} 👋',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
               const Text(
-                'Delhi Public School',
+                'SchoolGrid Central',
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  _buildChildChip('Aarav · 8A'),
-                  const SizedBox(width: 12),
-                  _buildChildChip('Ishita · 5B'),
-                ],
-              ),
+              if (children.isEmpty)
+                const Center(child: Text('No children linked to this account', style: TextStyle(color: Colors.grey)))
+              else
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: children.map((child) => Padding(
+                      padding: const EdgeInsets.only(right: 12.0),
+                      child: _buildChildChip(child),
+                    )).toList(),
+                  ),
+                ),
               const SizedBox(height: 24),
               const Text(
                 'Today\'s Homework',
@@ -130,10 +179,13 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
     );
   }
 
-  Widget _buildChildChip(String label) {
-    bool isSelected = _selectedChild == label;
+  Widget _buildChildChip(ChildInfo child) {
+    bool isSelected = _selectedChildId == child.id;
     return GestureDetector(
-      onTap: () => setState(() => _selectedChild = label),
+      onTap: () {
+        setState(() => _selectedChildId = child.id);
+        context.read<HomeworkService>().fetchHomework(className: child.className);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
@@ -141,7 +193,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
-          label,
+          child.displayLabel,
           style: TextStyle(
             color: isSelected ? Colors.white : const Color(0xFF64748B),
             fontWeight: FontWeight.w600,

@@ -10,22 +10,54 @@ import '../../core/models/homework_models.dart';
 import '../common/doubt_discussion_screen.dart';
 import 'package:intl/intl.dart';
 
-class TeacherHomeScreen extends StatelessWidget {
+import '../../core/services/user_service.dart';
+
+class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
 
   @override
+  State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
+}
+
+class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<UserService>().fetchProfile().then((_) {
+        final profile = context.read<UserService>().profile;
+        if (profile != null && profile.role == 'teacher') {
+          context.read<HomeworkService>().fetchHomework(teacherId: profile.id);
+        }
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final userService = context.watch<UserService>();
     final homeworkService = context.watch<HomeworkService>();
     final homeworks = homeworkService.homeworks;
+
+    if (userService.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final profile = userService.profile;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('SchoolConnect'),
         actions: [
           IconButton(icon: const Icon(LucideIcons.bell), onPressed: () {}),
-          const CircleAvatar(
+          CircleAvatar(
             backgroundColor: SchoolGridTheme.primary,
-            child: Text('AS', style: TextStyle(color: Colors.white)),
+            child: Text(
+              profile?.fullName.substring(0, 1).toUpperCase() ?? '?',
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
           const SizedBox(width: 12),
         ],
@@ -35,13 +67,18 @@ class TeacherHomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const GreetingSection(),
+            GreetingSection(profile: profile),
             const SizedBox(height: 24),
             const SectionHeader(title: 'Your Classes'),
             const SizedBox(height: 12),
-            const ClassCard(className: 'Class 8A', subject: 'Mathematics', schedule: 'Mon, Wed, Fri - 9:00 AM'),
-            const ClassCard(className: 'Class 9B', subject: 'Mathematics', schedule: 'Tue, Thu - 10:00 AM'),
-            const ClassCard(className: 'Class 10A', subject: 'Mathematics', schedule: 'Mon, Wed - 11:00 AM'),
+            if (userService.teacherClasses.isEmpty)
+              const Center(child: Text('No classes assigned yet', style: TextStyle(color: Colors.grey)))
+            else
+              ...userService.teacherClasses.map((cls) => ClassCard(
+                    className: cls.className,
+                    subject: cls.subject,
+                    schedule: cls.schedule,
+                  )),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -106,16 +143,20 @@ class TeacherHomeScreen extends StatelessWidget {
 }
 
 class GreetingSection extends StatelessWidget {
-  const GreetingSection({super.key});
+  final UserProfile? profile;
+  const GreetingSection({super.key, this.profile});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 30,
           backgroundColor: SchoolGridTheme.primary,
-          child: Text('AS', style: TextStyle(fontSize: 20, color: Colors.white)),
+          child: Text(
+            profile?.fullName.substring(0, 1).toUpperCase() ?? '?',
+            style: const TextStyle(fontSize: 20, color: Colors.white),
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -123,11 +164,11 @@ class GreetingSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Good morning, Mrs. Sharma 👋',
+                'Good morning, ${profile?.fullName ?? "Teacher"} 👋',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               Text(
-                'Mathematics Teacher',
+                profile?.role.toUpperCase() ?? 'Teacher',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
               ),
             ],

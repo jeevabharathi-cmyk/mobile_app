@@ -1,0 +1,164 @@
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class UserProfile {
+  final String id;
+  final String fullName;
+  final String role;
+  final String? email;
+  final String? schoolId;
+  final String? avatarUrl;
+
+  UserProfile({
+    required this.id,
+    required this.fullName,
+    required this.role,
+    this.email,
+    this.schoolId,
+    this.avatarUrl,
+  });
+
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    return UserProfile(
+      id: map['id'],
+      fullName: map['full_name'] ?? '',
+      role: map['role'] ?? '',
+      email: map['email'],
+      schoolId: map['school_id'],
+      avatarUrl: map['avatar_url'],
+    );
+  }
+}
+
+class TeacherClass {
+  final String className;
+  final String subject;
+  final String schedule;
+
+  TeacherClass({
+    required this.className,
+    required this.subject,
+    required this.schedule,
+  });
+}
+
+class ChildInfo {
+  final String id;
+  final String fullName;
+  final String className;
+  final String sectionName;
+
+  ChildInfo({
+    required this.id,
+    required this.fullName,
+    required this.className,
+    required this.sectionName,
+  });
+
+  String get displayLabel => '$fullName · $className$sectionName';
+}
+
+class UserService extends ChangeNotifier {
+  final _supabase = Supabase.instance.client;
+  UserProfile? _profile;
+  List<TeacherClass> _teacherClasses = [];
+  List<ChildInfo> _children = [];
+  bool _isLoading = false;
+
+  UserProfile? get profile => _profile;
+  List<TeacherClass> get teacherClasses => _teacherClasses;
+  List<ChildInfo> get children => _children;
+  bool get isLoading => _isLoading;
+
+  Future<void> fetchProfile() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .single();
+      
+      _profile = UserProfile.fromMap(response);
+
+      if (_profile?.role == 'teacher') {
+        await _fetchTeacherData();
+      } else if (_profile?.role == 'parent') {
+        await _fetchParentData();
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _fetchTeacherData() async {
+    try {
+      // Fetch teacher assignments with related class/section/subject names
+      final response = await _supabase
+          .from('teacher_assignments')
+          .select('''
+            classes (name),
+            sections (name),
+            subjects (name)
+          ''')
+          .eq('teacher_id', _profile!.id);
+
+      _teacherClasses = (response as List).map((item) {
+        final className = item['classes']['name'];
+        final sectionName = item['sections']['name'];
+        final subjectName = item['subjects']['name'];
+        return TeacherClass(
+          className: '$className$sectionName',
+          subject: subjectName,
+          schedule: 'Assigned', // Schedule table might be needed for real data
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching teacher data: $e');
+    }
+  }
+
+  Future<void> _fetchParentData() async {
+    try {
+      // Fetch students linked to this parent via student_parents table
+      final response = await _supabase
+          .from('student_parents')
+          .select('''
+            students (
+              id,
+              full_name,
+              classes (name),
+              sections (name)
+            )
+          ''')
+          .eq('parent_id', _profile!.id);
+
+      _children = (response as List).map((item) {
+        final student = item['students'];
+        return ChildInfo(
+          id: student['id'],
+          fullName: student['full_name'],
+          className: student['classes']['name'],
+          sectionName: student['sections']['name'],
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching parent data: $e');
+    }
+  }
+
+  void clear() {
+    _profile = null;
+    _teacherClasses = [];
+    _children = [];
+    notifyListeners();
+  }
+}
