@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/models/homework_models.dart';
 import '../../core/services/user_service.dart';
+import '../../core/services/homework_service.dart';
+import '../../core/theme.dart';
 
 class DoubtDiscussionScreen extends StatefulWidget {
   final String homeworkId;
