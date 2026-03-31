@@ -105,29 +105,34 @@ class Doubt {
 }
 
 class HomeworkAcknowledgment {
+  final String studentId;
   final String studentName;
   final String applicationNumber;
   final DateTime timestamp;
 
   HomeworkAcknowledgment({
+    required this.studentId,
     required this.studentName,
     required this.applicationNumber,
     required this.timestamp,
   });
 
   Map<String, dynamic> toJson() => {
+    'studentId': studentId,
     'studentName': studentName,
     'applicationNumber': applicationNumber,
     'timestamp': timestamp.toIso8601String(),
   };
 
   factory HomeworkAcknowledgment.fromJson(Map<String, dynamic> json) => HomeworkAcknowledgment(
-    studentName: json['studentName'],
-    applicationNumber: json['applicationNumber'],
+    studentId: json['studentId'] ?? '',
+    studentName: json['studentName'] ?? '',
+    applicationNumber: json['applicationNumber'] ?? '',
     timestamp: DateTime.parse(json['timestamp']),
   );
 
   factory HomeworkAcknowledgment.fromMap(Map<String, dynamic> map) => HomeworkAcknowledgment(
+    studentId: map['student_id'] ?? '',
     studentName: map['student_name'] ?? '',
     applicationNumber: map['application_number'] ?? '',
     timestamp: DateTime.parse(map['created_at']),

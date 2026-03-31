@@ -70,7 +70,7 @@ class HomeworkService extends ChangeNotifier {
         'content': content,
       });
       
-      await fetchHomework();
+      await fetchHomework(); 
       debugPrint('Event: Doubt Submitted');
     } catch (e) {
       debugPrint('Error adding doubt: $e');
@@ -80,16 +80,20 @@ class HomeworkService extends ChangeNotifier {
   Future<void> replyToDoubt({
     required String doubtId,
     required String teacherId,
+    required String teacherName,
     required String content,
   }) async {
     try {
       await _supabase.from('doubt_replies').insert({
         'doubt_id': doubtId,
         'teacher_id': teacherId,
+        'teacher_name': teacherName,
         'content': content,
       });
+
+      await _supabase.from('doubts').update({'status': 'answered'}).eq('id', doubtId);
       
-      await fetchHomework();
+      await fetchHomework(teacherId: teacherId);
       debugPrint('Event: Doubt Answered');
     } catch (e) {
       debugPrint('Error replying to doubt: $e');
@@ -126,6 +130,7 @@ class HomeworkService extends ChangeNotifier {
 
   Future<void> acknowledgeHomework({
     required String homeworkId,
+    required String studentId,
     required String studentName,
     required String applicationNumber,
   }) async {
@@ -135,13 +140,14 @@ class HomeworkService extends ChangeNotifier {
     try {
       await _supabase.from('acknowledgments').insert({
         'homework_id': homeworkId,
+        'student_id': studentId,
         'student_name': studentName,
         'application_number': applicationNumber,
         'parent_id': user.id,
       });
       
-      // Update local state if needed or refetch
-      await fetchHomework(); // Or more specific fetch
+      await fetchHomework(); 
+      debugPrint('Event: Homework Acknowledged');
     } catch (e) {
       debugPrint('Error acknowledging homework: $e');
     }

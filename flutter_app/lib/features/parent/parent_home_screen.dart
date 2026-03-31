@@ -166,7 +166,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
               else
                 ...homeworks.map((hw) => HomeworkCard(
                       homework: hw,
-                      selectedChildId: _selectedChildId,
+                      selectedChild: selectedChild,
                     )),
               const SizedBox(height: 16),
               const AnnouncementTile(count: 2),
@@ -209,12 +209,12 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
 class HomeworkCard extends StatelessWidget {
   final Homework homework;
-  final String? selectedChildId;
+  final ChildInfo? selectedChild;
 
   const HomeworkCard({
     super.key,
     required this.homework,
-    this.selectedChildId,
+    this.selectedChild,
   });
 
   @override
@@ -286,7 +286,7 @@ class HomeworkCard extends StatelessWidget {
                       ],
                     ),
                   )
-                else if (homework.acknowledgments.any((a) => a.applicationNumber == 'APP-2024-001'))
+                else if (homework.acknowledgments.any((a) => a.studentId == selectedChild?.studentId))
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -300,7 +300,7 @@ class HomeworkCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'at ${DateFormat('h:mm a').format(homework.acknowledgments.firstWhere((a) => a.applicationNumber == 'APP-2024-001').timestamp)}',
+                        'at ${DateFormat('h:mm a').format(homework.acknowledgments.firstWhere((a) => a.studentId == selectedChild?.studentId).timestamp)}',
                         style: const TextStyle(fontSize: 10, color: Colors.grey),
                       ),
                     ],
@@ -308,11 +308,14 @@ class HomeworkCard extends StatelessWidget {
                 else
                   ElevatedButton(
                     onPressed: () {
-                      context.read<HomeworkService>().acknowledgeHomework(
-                        homeworkId: homework.id,
-                        studentName: 'Aarav Mehta',
-                        applicationNumber: 'APP-2024-001',
-                      );
+                      if (selectedChild != null) {
+                        context.read<HomeworkService>().acknowledgeHomework(
+                          homeworkId: homework.id,
+                          studentId: selectedChild!.studentId,
+                          studentName: selectedChild!.fullName,
+                          applicationNumber: 'APP-${selectedChild!.studentId.substring(0, 8)}',
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF1F5F9),
@@ -331,17 +334,15 @@ class HomeworkCard extends StatelessWidget {
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () {
-                final userService = context.read<UserService>();
-                final children = userService.children;
-                final selectedChild = children.firstWhere((c) => c.studentId == selectedChildId);
+                if (selectedChild == null) return;
 
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => DoubtDiscussionScreen(
                       homeworkId: homework.id,
-                      studentId: selectedChild.studentId,
-                      parentId: selectedChild.parentId,
+                      studentId: selectedChild!.studentId,
+                      parentId: selectedChild!.parentId,
                     ),
                   ),
                 );

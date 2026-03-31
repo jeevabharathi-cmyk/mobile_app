@@ -67,6 +67,7 @@ class _DoubtDiscussionScreenState extends State<DoubtDiscussionScreen> {
                 await context.read<HomeworkService>().replyToDoubt(
                   doubtId: doubt.id,
                   teacherId: teacherId,
+                  teacherName: userService.profile!.fullName,
                   content: replyController.text,
                 );
               }

@@ -24,10 +24,12 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UserService>().fetchProfile().then((_) {
-        final profile = context.read<UserService>().profile;
-        if (profile != null && profile.role == 'teacher') {
-          context.read<HomeworkService>().fetchHomework(teacherId: profile.id);
+      final userService = context.read<UserService>();
+      userService.fetchProfile().then((_) {
+        final profile = userService.profile;
+        final teacherId = userService.teacherId;
+        if (profile != null && profile.role == 'teacher' && teacherId != null) {
+          context.read<HomeworkService>().fetchHomework(teacherId: teacherId);
         }
       });
     });
