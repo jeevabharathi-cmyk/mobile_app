@@ -185,7 +185,7 @@ class UserService extends ChangeNotifier {
             parent_id,
             students (
               id,
-              full_name,
+              name,
               class_id,
               section_id,
               classes (id, name),
@@ -196,18 +196,24 @@ class UserService extends ChangeNotifier {
 
       debugPrint('Parent student links response: $response');
 
-      _children = (response as List).map((link) {
-        final student = link['students'];
+      final List<dynamic> data = response as List<dynamic>;
+      _children = data.map((link) {
+        final student = link['students'] as Map<String, dynamic>?;
+        if (student == null) return null;
+
+        final classes = student['classes'] as Map<String, dynamic>?;
+        final sections = student['sections'] as Map<String, dynamic>?;
+
         return ChildInfo(
-          studentId: student['id'],
-          parentId: link['parent_id'],
-          classId: student['class_id'],
-          sectionId: student['section_id'],
-          fullName: student['full_name'],
-          className: student['classes']['name'],
-          sectionName: student['sections']['name'],
+          studentId: student['id'] ?? '',
+          parentId: link['parent_id'] ?? '',
+          classId: student['class_id'] ?? '',
+          sectionId: student['section_id'] ?? '',
+          fullName: student['name'] ?? 'Unknown',
+          className: classes?['name'] ?? 'N/A',
+          sectionName: sections?['name'] ?? '',
         );
-      }).toList();
+      }).whereType<ChildInfo>().toList();
       
       debugPrint('Fetched ${_children.length} children');
     } catch (e) {
