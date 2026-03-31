@@ -16,8 +16,19 @@ class PostHomeworkModal extends StatefulWidget {
 class _PostHomeworkModalState extends State<PostHomeworkModal> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  TeacherClass? _selectedClass;
+  String? _selectedClassKey; // composite key: "classId|sectionId|subjectId"
   DateTime? _dueDate;
+
+  String _classKey(TeacherClass c) => '${c.classId}|${c.sectionId}|${c.subjectId}';
+
+  TeacherClass? _findClassByKey(List<TeacherClass> classes, String? key) {
+    if (key == null) return null;
+    try {
+      return classes.firstWhere((c) => _classKey(c) == key);
+    } catch (_) {
+      return null;
+    }
+  }
 
   InputDecoration _inputDecoration(String label, {String? hintText}) {
     return InputDecoration(
@@ -39,22 +50,25 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
   }
 
   void _handlePostHomework() {
-    if (_titleController.text.isEmpty || _descriptionController.text.isEmpty || _dueDate == null) {
+    final userService = context.read<UserService>();
+    final selected = _findClassByKey(userService.teacherClasses, _selectedClassKey);
+
+    if (_titleController.text.isEmpty || _descriptionController.text.isEmpty || _dueDate == null || selected == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields and select a due date')),
+        const SnackBar(content: Text('Please fill all fields, select a class, and set a due date')),
       );
       return;
     }
 
-    final teacherId = context.read<UserService>().teacherId;
+    final teacherId = userService.teacherId;
     if (teacherId == null) return;
 
     context.read<HomeworkService>().postHomework(
       title: _titleController.text,
       description: _descriptionController.text,
-      classId: _selectedClass!.classId,
-      sectionId: _selectedClass!.sectionId,
-      subjectId: _selectedClass!.subjectId,
+      classId: selected.classId,
+      sectionId: selected.sectionId,
+      subjectId: selected.subjectId,
       teacherId: teacherId,
       dueDate: _dueDate!,
     );
@@ -73,8 +87,8 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
     final userService = context.watch<UserService>();
     final teacherClasses = userService.teacherClasses;
 
-    if (_selectedClass == null && teacherClasses.isNotEmpty) {
-      _selectedClass = teacherClasses.first;
+    if (_selectedClassKey == null && teacherClasses.isNotEmpty) {
+      _selectedClassKey = _classKey(teacherClasses.first);
     }
 
     return Container(
@@ -130,10 +144,13 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
               style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155), fontSize: 14),
             ),
             const SizedBox(height: 8),
-            DropdownButtonFormField<TeacherClass>(
-              value: _selectedClass,
-              onChanged: (value) => setState(() => _selectedClass = value),
-              items: teacherClasses.map((c) => DropdownMenuItem(value: c, child: Text('${c.className} - ${c.subject}'))).toList(),
+            DropdownButtonFormField<String>(
+              value: _selectedClassKey,
+              onChanged: (value) => setState(() => _selectedClassKey = value),
+              items: teacherClasses.map((c) => DropdownMenuItem(
+                value: _classKey(c),
+                child: Text('${c.className} - ${c.subject}'),
+              )).toList(),
               decoration: _inputDecoration(''),
               icon: const Icon(Icons.keyboard_arrow_down),
               hint: const Text('Select a class'),

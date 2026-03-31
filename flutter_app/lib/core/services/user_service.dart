@@ -6,6 +6,7 @@ class UserProfile {
   final String fullName;
   final String role;
   final String? email;
+  final String? phone;
   final String? schoolId;
   final String? avatarUrl;
 
@@ -14,6 +15,7 @@ class UserProfile {
     required this.fullName,
     required this.role,
     this.email,
+    this.phone,
     this.schoolId,
     this.avatarUrl,
   });
@@ -24,6 +26,7 @@ class UserProfile {
       fullName: map['full_name'] ?? '',
       role: map['role'] ?? '',
       email: map['email'],
+      phone: map['phone'],
       schoolId: map['school_id'],
       avatarUrl: map['avatar_url'],
     );
@@ -115,12 +118,22 @@ class UserService extends ChangeNotifier {
 
   Future<void> _fetchTeacherData() async {
     try {
-      // 1. Get the actual Teacher record linked to this profile
+      debugPrint('Fetching teacher data for profile: ${_profile!.id}');
+      
+      // 1. First try to get ALL teachers to debug RLS
+      final allTeachers = await _supabase
+          .from('teachers')
+          .select('id, full_name, profile_id');
+      debugPrint('All visible teachers: $allTeachers');
+      
+      // 2. Get the actual Teacher record linked to this profile
       final teacherRes = await _supabase
           .from('teachers')
           .select('id')
           .eq('profile_id', _profile!.id)
           .maybeSingle();
+
+      debugPrint('Teacher query result: $teacherRes');
 
       if (teacherRes == null) {
         debugPrint('No teacher record found for profile ${_profile!.id}');

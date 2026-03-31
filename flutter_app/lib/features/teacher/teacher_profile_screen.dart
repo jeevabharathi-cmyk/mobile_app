@@ -1,12 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme.dart';
+import '../../core/services/user_service.dart';
 
 class TeacherProfileScreen extends StatelessWidget {
   const TeacherProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final userService = context.watch<UserService>();
+    final profile = userService.profile;
+    final teacherClasses = userService.teacherClasses;
+
+    if (userService.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final String initials = profile?.fullName
+            .split(' ')
+            .where((word) => word.isNotEmpty)
+            .take(2)
+            .map((word) => word[0].toUpperCase())
+            .join() ??
+        '??';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       body: SingleChildScrollView(
@@ -45,12 +63,12 @@ class TeacherProfileScreen extends StatelessWidget {
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: const CircleAvatar(
+                    child: CircleAvatar(
                       radius: 56,
                       backgroundColor: SchoolGridTheme.primary,
                       child: Text(
-                        'AS',
-                        style: TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
+                        initials,
+                        style: const TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -58,13 +76,13 @@ class TeacherProfileScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 70),
-            const Text(
-              'Mrs. Anita Sharma',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+            Text(
+              profile?.fullName ?? 'Teacher Name',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
             ),
-            const Text(
-              'Mathematics Teacher',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+            Text(
+              (profile?.role ?? 'Teacher').toUpperCase(),
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
             ),
             const SizedBox(height: 24),
             const Padding(
@@ -81,7 +99,10 @@ class TeacherProfileScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () => context.go('/auth'),
+                  onPressed: () {
+                    userService.clear();
+                    context.go('/auth');
+                  },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: SchoolGridTheme.error,
                     side: const BorderSide(color: Color(0xFFFECACA)),
@@ -111,11 +132,11 @@ class ProfileInfoCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const InfoRow(label: 'School', value: 'Delhi Public School'),
+            const InfoRow(label: 'School', value: 'SchoolGrid Academy'),
             const Divider(),
             const InfoRow(label: 'Academic Year', value: '2024 - 2025'),
             const Divider(),
-            const InfoRow(label: 'Last Login', value: 'Today, 08:51 PM'),
+            InfoRow(label: 'Last Login', value: DateTime.now().toString().substring(0, 16)),
             const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -146,18 +167,24 @@ class ContactInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userService = context.watch<UserService>();
+    final profile = userService.profile;
+    final teacherClasses = userService.teacherClasses;
+
+    final String classesString = teacherClasses.isEmpty ? 'No classes assigned' : teacherClasses.map((c) => c.className).toSet().join(', ');
+
     return Card(
-      child: const Padding(
-        padding: EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            InfoRow(label: 'Phone', value: '+91 98765 43210'),
-            Divider(),
-            InfoRow(label: 'Email', value: 'anita@school.edu'),
-            Divider(),
-            InfoRow(label: 'Classes', value: '8A, 9B, 10A'),
-            Divider(),
-            InfoRow(label: 'Teacher ID', value: 'TCH-2024-001'),
+            InfoRow(label: 'Phone', value: profile?.phone ?? '+91 00000 00000'),
+            const Divider(),
+            InfoRow(label: 'Email', value: profile?.email ?? 'teacher@school.edu'),
+            const Divider(),
+            InfoRow(label: 'Classes', value: classesString),
+            const Divider(),
+            InfoRow(label: 'Teacher ID', value: userService.teacherId ?? 'TCH-NEW'),
           ],
         ),
       ),
