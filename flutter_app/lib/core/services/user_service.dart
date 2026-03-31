@@ -31,11 +31,17 @@ class UserProfile {
 }
 
 class TeacherClass {
+  final String classId;
+  final String sectionId;
+  final String subjectId;
   final String className;
   final String subject;
   final String schedule;
 
   TeacherClass({
+    required this.classId,
+    required this.sectionId,
+    required this.subjectId,
     required this.className,
     required this.subject,
     required this.schedule,
@@ -43,13 +49,19 @@ class TeacherClass {
 }
 
 class ChildInfo {
-  final String id;
+  final String studentId;
+  final String parentId;
+  final String classId;
+  final String sectionId;
   final String fullName;
   final String className;
   final String sectionName;
 
   ChildInfo({
-    required this.id,
+    required this.studentId,
+    required this.parentId,
+    required this.classId,
+    required this.sectionId,
     required this.fullName,
     required this.className,
     required this.sectionName,
@@ -61,11 +73,13 @@ class ChildInfo {
 class UserService extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
   UserProfile? _profile;
+  String? _teacherId;
   List<TeacherClass> _teacherClasses = [];
   List<ChildInfo> _children = [];
   bool _isLoading = false;
 
   UserProfile? get profile => _profile;
+  String? get teacherId => _teacherId;
   List<TeacherClass> get teacherClasses => _teacherClasses;
   List<ChildInfo> get children => _children;
   bool get isLoading => _isLoading;
@@ -101,24 +115,45 @@ class UserService extends ChangeNotifier {
 
   Future<void> _fetchTeacherData() async {
     try {
-      // Fetch teacher assignments with related class/section/subject names
+      // 1. Get the actual Teacher record linked to this profile
+      final teacherRes = await _supabase
+          .from('teachers')
+          .select('id')
+          .eq('profile_id', _profile!.id)
+          .maybeSingle();
+
+      if (teacherRes == null) {
+        debugPrint('No teacher record found for profile ${_profile!.id}');
+        return;
+      }
+
+      _teacherId = teacherRes['id'];
+      final teacherId = _teacherId;
+
+      // 2. Fetch teacher assignments with IDs and names
       final response = await _supabase
           .from('teacher_assignments')
           .select('''
+            class_id,
+            section_id,
+            subject_id,
             classes (name),
             sections (name),
             subjects (name)
           ''')
-          .eq('teacher_id', _profile!.id);
+          .eq('teacher_id', teacherId);
 
       _teacherClasses = (response as List).map((item) {
         final className = item['classes']['name'];
         final sectionName = item['sections']['name'];
         final subjectName = item['subjects']['name'];
         return TeacherClass(
+          classId: item['class_id'],
+          sectionId: item['section_id'],
+          subjectId: item['subject_id'],
           className: '$className$sectionName',
           subject: subjectName,
-          schedule: 'Assigned', // Schedule table might be needed for real data
+          schedule: 'Assigned',
         );
       }).toList();
     } catch (e) {
@@ -132,9 +167,12 @@ class UserService extends ChangeNotifier {
       final response = await _supabase
           .from('student_parents')
           .select('''
+            parent_id,
             students (
               id,
               full_name,
+              class_id,
+              section_id,
               classes (name),
               sections (name)
             )
@@ -144,7 +182,10 @@ class UserService extends ChangeNotifier {
       _children = (response as List).map((item) {
         final student = item['students'];
         return ChildInfo(
-          id: student['id'],
+          studentId: student['id'],
+          parentId: item['parent_id'],
+          classId: student['class_id'],
+          sectionId: student['section_id'],
           fullName: student['full_name'],
           className: student['classes']['name'],
           sectionName: student['sections']['name'],

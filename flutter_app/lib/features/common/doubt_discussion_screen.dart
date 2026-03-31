@@ -6,11 +6,15 @@ import '../../core/services/user_service.dart';
 
 class DoubtDiscussionScreen extends StatefulWidget {
   final String homeworkId;
+  final String? studentId;
+  final String? parentId;
   final bool isTeacher;
 
   const DoubtDiscussionScreen({
     super.key,
     required this.homeworkId,
+    this.studentId,
+    this.parentId,
     this.isTeacher = false,
   });
 
@@ -21,27 +25,27 @@ class DoubtDiscussionScreen extends StatefulWidget {
 class _DoubtDiscussionScreenState extends State<DoubtDiscussionScreen> {
   final _textController = TextEditingController();
 
-  void _handleSubmit(String content) {
+  void _handleSubmit(String content) async {
     if (content.trim().isEmpty) return;
 
     final service = context.read<HomeworkService>();
-    final profile = context.read<UserService>().profile;
     
-    if (widget.isTeacher) {
-      // Teachers usually reply via _showReplyDialog
-    } else {
-      service.addDoubt(
-        homeworkId: widget.homeworkId,
-        studentName: profile?.fullName ?? 'Parent',
-        content: content,
-      );
+    if (!widget.isTeacher) {
+      if (widget.studentId != null && widget.parentId != null) {
+        await service.addDoubt(
+          homeworkId: widget.homeworkId,
+          studentId: widget.studentId!,
+          parentId: widget.parentId!,
+          content: content,
+        );
+      }
     }
     _textController.clear();
   }
 
   void _showReplyDialog(Doubt doubt) {
     final replyController = TextEditingController();
-    final profile = context.read<UserService>().profile;
+    final userService = context.read<UserService>();
     
     showDialog(
       context: context,
@@ -55,13 +59,15 @@ class _DoubtDiscussionScreenState extends State<DoubtDiscussionScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
-              context.read<HomeworkService>().replyToDoubt(
-                homeworkId: widget.homeworkId,
-                doubtId: doubt.id,
-                teacherName: profile?.fullName ?? 'Teacher',
-                content: replyController.text,
-              );
+            onPressed: () async {
+              final teacherId = userService.teacherId;
+              if (teacherId != null) {
+                await context.read<HomeworkService>().replyToDoubt(
+                  doubtId: doubt.id,
+                  teacherId: teacherId,
+                  content: replyController.text,
+                );
+              }
               Navigator.pop(context);
             },
             child: const Text('Send Reply'),

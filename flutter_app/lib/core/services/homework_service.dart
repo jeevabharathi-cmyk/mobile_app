@@ -11,18 +11,18 @@ class HomeworkService extends ChangeNotifier {
   List<Homework> get homeworks => List.unmodifiable(_homeworks);
   bool get isLoading => _isLoading;
 
-  Future<void> fetchHomework({String? teacherId, String? className}) async {
+  Future<void> fetchHomework({String? teacherId, String? classId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      var query = _supabase.from('homework').select('*, doubts(*, doubt_replies(*)), acknowledgments(*)');
+      var query = _supabase.from('homework').select('*, doubts(*, doubt_replies(*), students(name)), acknowledgments(*), classes(name), sections(name), subjects(name)');
       
       if (teacherId != null) {
         query = query.eq('teacher_id', teacherId);
       }
-      if (className != null) {
-        query = query.ilike('class_name', '%$className%');
+      if (classId != null) {
+        query = query.eq('class_id', classId);
       }
 
       final response = await query.order('created_at', ascending: false);
@@ -39,17 +39,15 @@ class HomeworkService extends ChangeNotifier {
 
   Future<void> addDoubt({
     required String homeworkId,
+    required String studentId,
+    required String parentId,
     required String content,
-    required String studentName,
   }) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-
     try {
       await _supabase.from('doubts').insert({
         'homework_id': homeworkId,
-        'student_id': user.id,
-        'student_name': studentName,
+        'student_id': studentId,
+        'parent_id': parentId,
         'content': content,
       });
       
@@ -61,23 +59,14 @@ class HomeworkService extends ChangeNotifier {
   }
 
   Future<void> replyToDoubt({
-    required String homeworkId,
     required String doubtId,
+    required String teacherId,
     required String content,
-    required String teacherName,
   }) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-
     try {
-      // First update doubt status
-      await _supabase.from('doubts').update({'status': 'answered'}).eq('id', doubtId);
-
-      // Then insert reply
       await _supabase.from('doubt_replies').insert({
         'doubt_id': doubtId,
-        'teacher_id': user.id,
-        'teacher_name': teacherName,
+        'teacher_id': teacherId,
         'content': content,
       });
       
@@ -91,22 +80,24 @@ class HomeworkService extends ChangeNotifier {
   Future<void> postHomework({
     required String title,
     required String description,
-    required String className,
+    required String classId,
+    required String sectionId,
+    required String subjectId,
+    required String teacherId,
     required DateTime dueDate,
   }) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
-
     try {
       await _supabase.from('homework').insert({
+        'teacher_id': teacherId,
+        'class_id': classId,
+        'section_id': sectionId,
+        'subject_id': subjectId,
         'title': title,
         'description': description,
-        'class_name': className,
-        'due_date': dueDate.toIso8601String(),
-        'teacher_id': user.id,
+        'due_date': '${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}',
       });
       
-      await fetchHomework(teacherId: user.id);
+      await fetchHomework(teacherId: teacherId);
       
       debugPrint('Event: Homework Posted');
     } catch (e) {

@@ -16,7 +16,7 @@ class PostHomeworkModal extends StatefulWidget {
 class _PostHomeworkModalState extends State<PostHomeworkModal> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String? _selectedClass;
+  TeacherClass? _selectedClass;
   DateTime? _dueDate;
 
   InputDecoration _inputDecoration(String label, {String? hintText}) {
@@ -46,10 +46,16 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
       return;
     }
 
+    final teacherId = context.read<UserService>().teacherId;
+    if (teacherId == null) return;
+
     context.read<HomeworkService>().postHomework(
       title: _titleController.text,
       description: _descriptionController.text,
-      className: _selectedClass!,
+      classId: _selectedClass!.classId,
+      sectionId: _selectedClass!.sectionId,
+      subjectId: _selectedClass!.subjectId,
+      teacherId: teacherId,
       dueDate: _dueDate!,
     );
 
@@ -66,10 +72,9 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
   Widget build(BuildContext context) {
     final userService = context.watch<UserService>();
     final teacherClasses = userService.teacherClasses;
-    final classNames = teacherClasses.map((c) => c.className).toList();
 
-    if (_selectedClass == null && classNames.isNotEmpty) {
-      _selectedClass = classNames.first;
+    if (_selectedClass == null && teacherClasses.isNotEmpty) {
+      _selectedClass = teacherClasses.first;
     }
 
     return Container(
@@ -125,10 +130,10 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
               style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155), fontSize: 14),
             ),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<TeacherClass>(
               value: _selectedClass,
               onChanged: (value) => setState(() => _selectedClass = value),
-              items: classNames.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              items: teacherClasses.map((c) => DropdownMenuItem(value: c, child: Text('${c.className} - ${c.subject}'))).toList(),
               decoration: _inputDecoration(''),
               icon: const Icon(Icons.keyboard_arrow_down),
               hint: const Text('Select a class'),

@@ -76,18 +76,25 @@ class Doubt {
     reply: json['reply'] != null ? DoubtReply.fromJson(json['reply']) : null,
   );
 
-  factory Doubt.fromMap(Map<String, dynamic> map) => Doubt(
-    id: map['id'].toString(),
-    homeworkId: map['homework_id'].toString(),
-    studentId: map['student_id'] ?? '',
-    studentName: map['student_name'] ?? '',
-    content: map['content'] ?? '',
-    timestamp: DateTime.parse(map['created_at']),
-    status: map['status'] == 'answered' ? DoubtStatus.answered : DoubtStatus.unanswered,
-    reply: (map['doubt_replies'] != null && (map['doubt_replies'] as List).isNotEmpty)
-        ? DoubtReply.fromMap((map['doubt_replies'] as List).first)
-        : null,
-  );
+  factory Doubt.fromMap(Map<String, dynamic> map) {
+    var studentName = 'Student';
+    if (map['students'] != null) {
+      studentName = map['students']['name'] ?? 'Student';
+    }
+
+    return Doubt(
+      id: map['id'].toString(),
+      homeworkId: map['homework_id'].toString(),
+      studentId: map['student_id'] ?? '',
+      studentName: studentName,
+      content: map['content'] ?? '',
+      timestamp: DateTime.parse(map['created_at']),
+      status: map['status'] == 'answered' ? DoubtStatus.answered : DoubtStatus.unanswered,
+      reply: (map['doubt_replies'] != null && (map['doubt_replies'] as List).isNotEmpty)
+          ? DoubtReply.fromMap((map['doubt_replies'] as List).first)
+          : null,
+    );
+  }
 }
 
 class HomeworkAcknowledgment {
@@ -146,18 +153,25 @@ class Homework {
   int get unansweredDoubts => totalDoubts - answeredDoubts;
   int get totalAcknowledgments => acknowledgments.length;
 
-  factory Homework.fromMap(Map<String, dynamic> map) => Homework(
-    id: map['id'].toString(),
-    title: map['title'] ?? '',
-    description: map['description'] ?? '',
-    className: map['class_name'] ?? '',
-    dueDate: DateTime.parse(map['due_date']),
-    postedAt: DateTime.parse(map['created_at']),
-    doubts: (map['doubts'] as List? ?? []).map((d) => Doubt.fromMap(d)).toList(),
-    acknowledgments: (map['acknowledgments'] as List? ?? [])
-        .map((a) => HomeworkAcknowledgment.fromMap(a))
-        .toList(),
-  );
+  factory Homework.fromMap(Map<String, dynamic> map) {
+    // Handle joins for names
+    final className = map['classes']?['name'] ?? '';
+    final sectionName = map['sections']?['name'] ?? '';
+    final subjectName = map['subjects']?['name'] ?? '';
+
+    return Homework(
+      id: map['id'].toString(),
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      className: '$className$sectionName - $subjectName',
+      dueDate: DateTime.parse(map['due_date']),
+      postedAt: DateTime.parse(map['created_at']),
+      doubts: (map['doubts'] as List? ?? []).map((d) => Doubt.fromMap(d)).toList(),
+      acknowledgments: (map['acknowledgments'] as List? ?? [])
+          .map((a) => HomeworkAcknowledgment.fromMap(a))
+          .toList(),
+    );
+  }
 
   Homework copyWith({
     List<Doubt>? doubts,

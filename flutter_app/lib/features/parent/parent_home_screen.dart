@@ -27,8 +27,8 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
       context.read<UserService>().fetchProfile().then((_) {
         final children = context.read<UserService>().children;
         if (children.isNotEmpty) {
-          setState(() => _selectedChildId = children.first.id);
-          context.read<HomeworkService>().fetchHomework(className: children.first.className);
+          setState(() => _selectedChildId = children.first.studentId);
+          context.read<HomeworkService>().fetchHomework(classId: children.first.classId);
         }
       });
     });
@@ -50,12 +50,12 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
     // Set initial selected child if not set
     if (_selectedChildId == null && children.isNotEmpty) {
-      _selectedChildId = children.first.id;
+      _selectedChildId = children.first.studentId;
     }
 
     final selectedChild = children.isEmpty 
         ? null 
-        : children.firstWhere((c) => c.id == _selectedChildId, orElse: () => children.first);
+        : children.firstWhere((c) => c.studentId == _selectedChildId, orElse: () => children.first);
 
     final homeworks = selectedChild == null 
         ? <Homework>[] 
@@ -180,11 +180,11 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
   }
 
   Widget _buildChildChip(ChildInfo child) {
-    bool isSelected = _selectedChildId == child.id;
+    bool isSelected = _selectedChildId == child.studentId;
     return GestureDetector(
       onTap: () {
-        setState(() => _selectedChildId = child.id);
-        context.read<HomeworkService>().fetchHomework(className: child.className);
+        setState(() => _selectedChildId = child.studentId);
+        context.read<HomeworkService>().fetchHomework(classId: child.classId);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -326,10 +326,18 @@ class HomeworkCard extends StatelessWidget {
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () {
+                final userService = context.read<UserService>();
+                final children = userService.children;
+                final selectedChild = children.firstWhere((c) => c.studentId == _selectedChildId);
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => DoubtDiscussionScreen(homeworkId: homework.id),
+                    builder: (context) => DoubtDiscussionScreen(
+                      homeworkId: homework.id,
+                      studentId: selectedChild.studentId,
+                      parentId: selectedChild.parentId,
+                    ),
                   ),
                 );
               },
