@@ -25,10 +25,17 @@ class DoubtReply {
     'timestamp': timestamp.toIso8601String(),
   };
 
+  factory DoubtReply.fromJson(Map<String, dynamic> json) => DoubtReply(
+    teacherId: json['teacherId'],
+    teacherName: json['teacherName'],
+    content: json['content'],
+    timestamp: DateTime.parse(json['timestamp']),
+  );
+
   factory DoubtReply.fromMap(Map<String, dynamic> map) => DoubtReply(
     teacherId: map['teacher_id'],
-    teacherName: map['teacher_name'],
-    content: map['content'],
+    teacherName: map['teacher_name'] ?? 'Teacher',
+    content: map['content'] ?? '',
     timestamp: DateTime.parse(map['created_at']),
   );
 }
