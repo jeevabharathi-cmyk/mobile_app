@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/models/homework_models.dart';
-import '../../core/services/homework_service.dart';
-import '../../core/theme.dart';
+import '../../core/services/user_service.dart';
 
 class DoubtDiscussionScreen extends StatefulWidget {
   final String homeworkId;
@@ -26,15 +25,14 @@ class _DoubtDiscussionScreenState extends State<DoubtDiscussionScreen> {
     if (content.trim().isEmpty) return;
 
     final service = context.read<HomeworkService>();
+    final profile = context.read<UserService>().profile;
+    
     if (widget.isTeacher) {
-      // In a real app, we'd have a selected doubt to reply to.
-      // For this demo, we'll reply to the first unanswered doubt if any, 
-      // or we can show a reply dialog per doubt item.
+      // Teachers usually reply via _showReplyDialog
     } else {
       service.addDoubt(
         homeworkId: widget.homeworkId,
-        studentId: 'STU-123', // Demo ID
-        studentName: 'Aarav Mehta', // Demo Name
+        studentName: profile?.fullName ?? 'Parent',
         content: content,
       );
     }
@@ -43,6 +41,8 @@ class _DoubtDiscussionScreenState extends State<DoubtDiscussionScreen> {
 
   void _showReplyDialog(Doubt doubt) {
     final replyController = TextEditingController();
+    final profile = context.read<UserService>().profile;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -59,8 +59,7 @@ class _DoubtDiscussionScreenState extends State<DoubtDiscussionScreen> {
               context.read<HomeworkService>().replyToDoubt(
                 homeworkId: widget.homeworkId,
                 doubtId: doubt.id,
-                teacherId: 'TCH-001', // Demo ID
-                teacherName: 'Mrs. Sharma', // Demo Name
+                teacherName: profile?.fullName ?? 'Teacher',
                 content: replyController.text,
               );
               Navigator.pop(context);

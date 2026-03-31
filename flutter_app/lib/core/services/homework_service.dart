@@ -27,13 +27,64 @@ class HomeworkService extends ChangeNotifier {
 
       final response = await query.order('created_at', ascending: false);
       
-      // Map response to Homework models (assuming models are updated or using fromMap)
+      // map response to Homework models
       _homeworks = (response as List).map((hw) => Homework.fromMap(hw)).toList();
     } catch (e) {
       debugPrint('Error fetching homework: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> addDoubt({
+    required String homeworkId,
+    required String content,
+    required String studentName,
+  }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await _supabase.from('doubts').insert({
+        'homework_id': homeworkId,
+        'student_id': user.id,
+        'student_name': studentName,
+        'content': content,
+      });
+      
+      await fetchHomework();
+      debugPrint('Event: Doubt Submitted');
+    } catch (e) {
+      debugPrint('Error adding doubt: $e');
+    }
+  }
+
+  Future<void> replyToDoubt({
+    required String homeworkId,
+    required String doubtId,
+    required String content,
+    required String teacherName,
+  }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // First update doubt status
+      await _supabase.from('doubts').update({'status': 'answered'}).eq('id', doubtId);
+
+      // Then insert reply
+      await _supabase.from('doubt_replies').insert({
+        'doubt_id': doubtId,
+        'teacher_id': user.id,
+        'teacher_name': teacherName,
+        'content': content,
+      });
+      
+      await fetchHomework();
+      debugPrint('Event: Doubt Answered');
+    } catch (e) {
+      debugPrint('Error replying to doubt: $e');
     }
   }
 

@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 
 import 'package:provider/provider.dart';
 import '../../core/services/homework_service.dart';
+import '../../core/services/user_service.dart';
 
 class PostHomeworkModal extends StatefulWidget {
   const PostHomeworkModal({super.key});
@@ -15,14 +16,8 @@ class PostHomeworkModal extends StatefulWidget {
 class _PostHomeworkModalState extends State<PostHomeworkModal> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _selectedClass = '8A — Mathematics';
+  String? _selectedClass;
   DateTime? _dueDate;
-
-  final List<String> _classes = [
-    '8A — Mathematics',
-    '9B — Mathematics',
-    '10A — Mathematics',
-  ];
 
   InputDecoration _inputDecoration(String label, {String? hintText}) {
     return InputDecoration(
@@ -54,7 +49,7 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
     context.read<HomeworkService>().postHomework(
       title: _titleController.text,
       description: _descriptionController.text,
-      className: _selectedClass,
+      className: _selectedClass!,
       dueDate: _dueDate!,
     );
 
@@ -69,6 +64,14 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
 
   @override
   Widget build(BuildContext context) {
+    final userService = context.watch<UserService>();
+    final teacherClasses = userService.teacherClasses;
+    final classNames = teacherClasses.map((c) => c.className).toList();
+
+    if (_selectedClass == null && classNames.isNotEmpty) {
+      _selectedClass = classNames.first;
+    }
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -124,10 +127,11 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               value: _selectedClass,
-              onChanged: (value) => setState(() => _selectedClass = value!),
-              items: _classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (value) => setState(() => _selectedClass = value),
+              items: classNames.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
               decoration: _inputDecoration(''),
               icon: const Icon(Icons.keyboard_arrow_down),
+              hint: const Text('Select a class'),
             ),
             const SizedBox(height: 16),
             const Text(
