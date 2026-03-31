@@ -176,27 +176,31 @@ class UserService extends ChangeNotifier {
 
   Future<void> _fetchParentData() async {
     try {
-      // Fetch students linked to this parent via student_parents table
+      debugPrint('Fetching parent data for profile: ${_profile!.id}');
+      
       final response = await _supabase
           .from('student_parents')
           .select('''
+            student_id,
             parent_id,
             students (
               id,
               full_name,
               class_id,
               section_id,
-              classes (name),
-              sections (name)
+              classes (id, name),
+              sections (id, name)
             )
           ''')
           .eq('parent_id', _profile!.id);
 
-      _children = (response as List).map((item) {
-        final student = item['students'];
+      debugPrint('Parent student links response: $response');
+
+      _children = (response as List).map((link) {
+        final student = link['students'];
         return ChildInfo(
           studentId: student['id'],
-          parentId: item['parent_id'],
+          parentId: link['parent_id'],
           classId: student['class_id'],
           sectionId: student['section_id'],
           fullName: student['full_name'],
@@ -204,6 +208,8 @@ class UserService extends ChangeNotifier {
           sectionName: student['sections']['name'],
         );
       }).toList();
+      
+      debugPrint('Fetched ${_children.length} children');
     } catch (e) {
       debugPrint('Error fetching parent data: $e');
     }
