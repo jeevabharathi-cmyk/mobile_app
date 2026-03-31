@@ -11,6 +11,25 @@ class HomeworkService extends ChangeNotifier {
   List<Homework> get homeworks => List.unmodifiable(_homeworks);
   bool get isLoading => _isLoading;
 
+  Map<String, dynamic> getStats() {
+    int totalDoubts = 0;
+    int answeredCount = 0;
+    int totalAcks = 0;
+
+    for (var hw in _homeworks) {
+      totalDoubts += hw.totalDoubts;
+      answeredCount += hw.answeredDoubts;
+      totalAcks += hw.totalAcknowledgments;
+    }
+
+    return {
+      'totalDoubts': totalDoubts,
+      'answeredCount': answeredCount,
+      'totalAcks': totalAcks,
+      'avgResponseTime': '2.5h', // Mocked or calculated if needed
+    };
+  }
+
   Future<void> fetchHomework({String? teacherId, String? classId}) async {
     _isLoading = true;
     notifyListeners();

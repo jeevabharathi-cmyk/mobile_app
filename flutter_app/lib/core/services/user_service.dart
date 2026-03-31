@@ -141,7 +141,7 @@ class UserService extends ChangeNotifier {
             sections (name),
             subjects (name)
           ''')
-          .eq('teacher_id', teacherId);
+          .eq('teacher_id', teacherId as Object);
 
       _teacherClasses = (response as List).map((item) {
         final className = item['classes']['name'];

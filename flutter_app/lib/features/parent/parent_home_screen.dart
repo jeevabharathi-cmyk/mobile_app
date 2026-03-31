@@ -164,7 +164,10 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
                   ),
                 )
               else
-                ...homeworks.map((hw) => HomeworkCard(homework: hw)),
+                ...homeworks.map((hw) => HomeworkCard(
+                      homework: hw,
+                      selectedChildId: _selectedChildId,
+                    )),
               const SizedBox(height: 16),
               const AnnouncementTile(count: 2),
             ],
@@ -206,10 +209,12 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
 class HomeworkCard extends StatelessWidget {
   final Homework homework;
+  final String? selectedChildId;
 
   const HomeworkCard({
     super.key,
     required this.homework,
+    this.selectedChildId,
   });
 
   @override
@@ -328,7 +333,7 @@ class HomeworkCard extends StatelessWidget {
               onTap: () {
                 final userService = context.read<UserService>();
                 final children = userService.children;
-                final selectedChild = children.firstWhere((c) => c.studentId == _selectedChildId);
+                final selectedChild = children.firstWhere((c) => c.studentId == selectedChildId);
 
                 Navigator.push(
                   context,
