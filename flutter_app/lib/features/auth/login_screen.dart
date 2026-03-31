@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen>
         
         final String? userRole = profileData['role'] as String?;
         
-        if (userRole != widget.role && widget.role != 'admin') {
+        if (userRole != widget.role && userRole != 'admin') {
           await supabase.auth.signOut();
           throw AuthException('Authorized access denied: Your account is registered as a $userRole');
         }
