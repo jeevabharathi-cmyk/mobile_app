@@ -121,20 +121,37 @@ class UserService extends ChangeNotifier {
 
   Future<void> _fetchTeacherData() async {
     try {
-      debugPrint('Fetching teacher data for profile: ${_profile!.id}');
+      debugPrint('>>> ENTERING _fetchTeacherData for ID: ${_profile!.id}');
       
       // 1. First try to get ALL teachers to debug RLS
       final allTeachers = await _supabase
           .from('teachers')
           .select('id, full_name, profile_id');
-      debugPrint('All visible teachers: $allTeachers');
+      debugPrint('>>> All visible teachers in DB: $allTeachers');
       
       // 2. Get the actual Teacher record linked to this profile
-      final teacherRes = await _supabase
+      dynamic teacherRes = await _supabase
           .from('teachers')
           .select('id')
           .eq('profile_id', _profile!.id)
           .maybeSingle();
+
+      if (teacherRes == null && _profile!.email != null) {
+        debugPrint('No profile_id link, trying email: ${_profile!.email}');
+        teacherRes = await _supabase
+            .from('teachers')
+            .select('id')
+            .eq('email', _profile!.email!)
+            .maybeSingle();
+            
+        if (teacherRes != null) {
+          debugPrint('Found teacher by email, updating profile_id link...');
+          await _supabase
+              .from('teachers')
+              .update({'profile_id': _profile!.id})
+              .eq('id', teacherRes['id']);
+        }
+      }
 
       debugPrint('Teacher query result: $teacherRes');
 
@@ -146,16 +163,9 @@ class UserService extends ChangeNotifier {
       _teacherId = teacherRes['id'];
       final teacherId = _teacherId;
 
-      // 1. Setup real-time listener for the teacher's own record (to catch array updates)
-      _teacherTableSubscription?.cancel();
-      _teacherTableSubscription = _supabase
-          .from('teachers')
-          .stream(primaryKey: ['id'])
-          .eq('id', teacherId!)
-          .listen((data) {
-            debugPrint('Real-time: Teacher record changed for $teacherId');
-            _fetchTeacherData(); 
-          });
+      if (teacherId != null) {
+        _setupTeacherRealtime(teacherId);
+      }
 
       // 2. Fetch all classes, sections, and subjects for lookup
       final classesRes = await _supabase.from('classes').select('id, name');
@@ -180,9 +190,9 @@ class UserService extends ChangeNotifier {
           .eq('teacher_id', teacherId as Object);
 
       final List<TeacherClass> assignments = (response as List).map((item) {
-        final className = item['classes']['name'];
-        final sectionName = item['sections']['name'];
-        final subjectName = item['subjects']['name'];
+        final className = item['classes']?['name'] ?? 'Unknown';
+        final sectionName = item['sections']?['name'] ?? '';
+        final subjectName = item['subjects']?['name'] ?? 'General';
         return TeacherClass(
           classId: item['class_id'],
           sectionId: item['section_id'],
@@ -205,9 +215,25 @@ class UserService extends ChangeNotifier {
         
         if (!exists) {
           final matchedClass = allAddClasses.firstWhere(
-            (c) => c['name'].toString().toLowerCase().contains(nameStr),
+            (c) {
+              final dbName = c['name'].toString().toLowerCase();
+              if (dbName == nameStr) return true;
+              
+              // Handle "Class 12" vs "Class 1" by ensuring number matches exactly if present
+              final RegExp numRegex = RegExp(r'\d+');
+              final dbNum = numRegex.firstMatch(dbName)?.group(0);
+              final adminNum = numRegex.firstMatch(nameStr)?.group(0);
+              
+              if (dbNum != null && adminNum != null) {
+                return dbNum == adminNum && (dbName.contains(nameStr) || nameStr.contains(dbName));
+              }
+              
+              return dbName.contains(nameStr) || nameStr.contains(dbName);
+            },
             orElse: () => <String, dynamic>{},
           );
+
+          debugPrint('Matched class for $nameStr: $matchedClass');
 
           if (matchedClass.isNotEmpty) {
             final classId = matchedClass['id'] ?? '';
@@ -219,10 +245,16 @@ class UserService extends ChangeNotifier {
             
             final String subjectName = teacherSubjectsArr.isNotEmpty ? teacherSubjectsArr[0].toString() : 'General';
             final matchedSubject = allAddSubjects.firstWhere(
-              (s) => s['name'].toString().toLowerCase() == subjectName.toLowerCase(),
+              (s) {
+                final dbSub = s['name'].toString().toLowerCase();
+                return dbSub == subjectName.toLowerCase() || 
+                       dbSub.contains(subjectName.toLowerCase()) || 
+                       subjectName.toLowerCase().contains(dbSub);
+              },
               orElse: () => <String, dynamic>{},
             );
             final subjectId = matchedSubject['id'] ?? '';
+            debugPrint('Matched subject for $subjectName: $matchedSubject');
 
             if (classId.toString().isNotEmpty) {
               assignments.add(TeacherClass(
@@ -240,20 +272,37 @@ class UserService extends ChangeNotifier {
 
       _teacherClasses = assignments;
       notifyListeners();
-
-      // 3. Setup real-time listener for assignments
-      _teacherAssignmentsSubscription?.cancel();
-      _teacherAssignmentsSubscription = _supabase
-          .from('teacher_assignments')
-          .stream(primaryKey: ['id'])
-          .eq('teacher_id', teacherId)
-          .listen((data) {
-            debugPrint('Real-time: Teacher assignments changed for $teacherId');
-            _fetchTeacherData();
-          });
     } catch (e) {
       debugPrint('Error fetching teacher data: $e');
     }
+  }
+
+  String? _lastSubscribedTeacherId;
+  void _setupTeacherRealtime(String teacherId) {
+    if (_lastSubscribedTeacherId == teacherId) return;
+    _lastSubscribedTeacherId = teacherId;
+
+    debugPrint('Setting up real-time for teacher: $teacherId');
+
+    _teacherTableSubscription?.cancel();
+    _teacherTableSubscription = _supabase
+        .from('teachers')
+        .stream(primaryKey: ['id'])
+        .eq('id', teacherId)
+        .listen((data) {
+          debugPrint('Real-time: Teacher record changed for $teacherId');
+          _fetchTeacherData();
+        });
+
+    _teacherAssignmentsSubscription?.cancel();
+    _teacherAssignmentsSubscription = _supabase
+        .from('teacher_assignments')
+        .stream(primaryKey: ['id'])
+        .eq('teacher_id', teacherId)
+        .listen((data) {
+          debugPrint('Real-time: Teacher assignments changed for $teacherId');
+          _fetchTeacherData();
+        });
   }
 
   Future<void> _fetchParentData() async {

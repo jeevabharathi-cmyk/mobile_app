@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/homework_models.dart';
 import 'notification_service.dart';
+import 'dart:async';
 
 class HomeworkService extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
@@ -12,6 +13,10 @@ class HomeworkService extends ChangeNotifier {
   
   String? _currentTeacherId;
   String? _currentClassId;
+  
+  StreamSubscription? _homeworkSubscription;
+  StreamSubscription? _doubtsSubscription;
+  StreamSubscription? _acksSubscription;
 
   List<Homework> get homeworks => List.unmodifiable(_homeworks);
   bool get isLoading => _isLoading;
@@ -19,6 +24,40 @@ class HomeworkService extends ChangeNotifier {
   void clearFilters() {
     _currentTeacherId = null;
     _currentClassId = null;
+    _stopRealtime();
+  }
+
+  void _initRealtime() {
+    _stopRealtime();
+
+    if (_currentTeacherId == null) return;
+
+    // 1. Listen for new/updated homework for this teacher
+    _homeworkSubscription = _supabase
+        .from('homework')
+        .stream(primaryKey: ['id'])
+        .eq('teacher_id', _currentTeacherId!)
+        .listen((_) => fetchHomework());
+
+    // 2. Listen for any new doubts (simplified to refresh everything for consistency)
+    _doubtsSubscription = _supabase
+        .from('doubts')
+        .stream(primaryKey: ['id'])
+        .listen((_) => fetchHomework());
+
+    // 3. Listen for any new acknowledgments
+    _acksSubscription = _supabase
+        .from('acknowledgments')
+        .stream(primaryKey: ['id'])
+        .listen((_) => fetchHomework());
+    
+    debugPrint('Real-time: Homework listeners initialized for $_currentTeacherId');
+  }
+
+  void _stopRealtime() {
+    _homeworkSubscription?.cancel();
+    _doubtsSubscription?.cancel();
+    _acksSubscription?.cancel();
   }
 
   Map<String, dynamic> getStats() {
@@ -41,8 +80,16 @@ class HomeworkService extends ChangeNotifier {
   }
 
   Future<void> fetchHomework({String? teacherId, String? classId}) async {
-    if (teacherId != null) _currentTeacherId = teacherId;
+    bool teacherChanged = false;
+    if (teacherId != null && teacherId != _currentTeacherId) {
+      _currentTeacherId = teacherId;
+      teacherChanged = true;
+    }
     if (classId != null) _currentClassId = classId;
+
+    if (teacherChanged) {
+      _initRealtime();
+    }
 
     _isLoading = true;
     notifyListeners();
@@ -203,6 +250,9 @@ class HomeworkService extends ChangeNotifier {
       debugPrint('Error acknowledging homework: $e');
       return false;
     }
+  @override
+  void dispose() {
+    _stopRealtime();
+    super.dispose();
   }
-  
 }
