@@ -13,6 +13,7 @@ import '../features/parent/announcements_screen.dart';
 import '../features/parent/parent_profile_screen.dart';
 import '../features/teacher/teacher_announcements_screen.dart';
 import '../features/common/notifications_screen.dart';
+import '../features/parent/parent_help_center_screen.dart';
 
 class TeacherMainLayout extends StatefulWidget {
   final Widget child;
@@ -190,6 +191,10 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/parent-profile',
           builder: (context, state) => const ParentProfileScreen(),
+        ),
+        GoRoute(
+          path: '/parent-help-center',
+          builder: (context, state) => const ParentHelpCenterScreen(),
         ),
       ],
     ),

@@ -189,7 +189,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => context.push('/parent-help-center'),
         backgroundColor: const Color(0xFF1E293B),
         child: const Icon(Icons.message_outlined, color: Colors.white),
       ),
