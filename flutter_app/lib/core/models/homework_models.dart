@@ -135,7 +135,7 @@ class HomeworkAcknowledgment {
     studentId: map['student_id'] ?? '',
     studentName: map['student_name'] ?? '',
     applicationNumber: map['application_number'] ?? '',
-    timestamp: DateTime.parse(map['created_at']),
+    timestamp: DateTime.parse(map['acknowledged_at'] ?? DateTime.now().toIso8601String()),
   );
 }
 
@@ -144,6 +144,8 @@ class Homework {
   final String title;
   final String description;
   final String className;
+  final String classId;
+  final String sectionId;
   final DateTime dueDate;
   final DateTime postedAt;
   final List<Doubt> doubts;
@@ -154,6 +156,8 @@ class Homework {
     required this.title,
     required this.description,
     required this.className,
+    required this.classId,
+    required this.sectionId,
     required this.dueDate,
     required this.postedAt,
     this.doubts = const [],
@@ -176,6 +180,8 @@ class Homework {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       className: '$className$sectionName - $subjectName',
+      classId: (map['class_id'] ?? '').toString().trim(),
+      sectionId: (map['section_id'] ?? '').toString().trim(),
       dueDate: DateTime.parse(map['due_date']),
       postedAt: DateTime.parse(map['created_at']),
       doubts: (map['doubts'] as List? ?? []).map((d) => Doubt.fromMap(d)).toList(),
@@ -194,6 +200,8 @@ class Homework {
       title: title,
       description: description,
       className: className,
+      classId: classId,
+      sectionId: sectionId,
       dueDate: dueDate,
       postedAt: postedAt,
       doubts: doubts ?? this.doubts,

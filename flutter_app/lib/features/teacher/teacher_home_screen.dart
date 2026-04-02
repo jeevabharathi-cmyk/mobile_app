@@ -22,6 +22,7 @@ class TeacherHomeScreen extends StatefulWidget {
 class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
   @override
   void initState() {
+    print('DEBUG: TeacherHomeScreen.initState called');
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userService = context.read<UserService>();
@@ -29,7 +30,10 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
         final profile = userService.profile;
         final teacherId = userService.teacherId;
         if (profile != null && profile.role == 'teacher' && teacherId != null) {
+          print('DEBUG: Calling fetchHomework for teacher: $teacherId');
           context.read<HomeworkService>().fetchHomework(teacherId: teacherId);
+        } else {
+          print('DEBUG: conditions not met - profile: ${profile != null}, role: ${profile?.role}, teacherId: $teacherId');
         }
       });
     });
@@ -53,7 +57,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       appBar: AppBar(
         title: const Text('SchoolConnect'),
         actions: [
-          IconButton(icon: const Icon(LucideIcons.bell), onPressed: () {}),
+          IconButton(icon: const Icon(LucideIcons.bell), onPressed: () {
+            context.push('/teacher-announcements');
+          }),
           CircleAvatar(
             backgroundColor: SchoolGridTheme.primary,
             child: Text(

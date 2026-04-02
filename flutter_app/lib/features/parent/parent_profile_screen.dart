@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
+import 'package:provider/provider.dart';
+import '../../core/services/user_service.dart';
 
 class ParentProfileScreen extends StatelessWidget {
   const ParentProfileScreen({super.key});
@@ -9,7 +11,18 @@ class ParentProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      body: SingleChildScrollView(
+      body: Consumer<UserService>(
+        builder: (context, userService, _) {
+          final profile = userService.profile;
+          final initial = profile?.fullName.isNotEmpty == true 
+              ? profile!.fullName.substring(0, 1).toUpperCase() 
+              : '?';
+
+          final childrenStr = userService.children.isEmpty 
+              ? 'No children linked' 
+              : userService.children.map((c) => '${c.fullName} (${c.className}${c.sectionName})').join(', ');
+
+          return SingleChildScrollView(
         child: Column(
           children: [
             Stack(
@@ -45,12 +58,12 @@ class ParentProfileScreen extends StatelessWidget {
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: const CircleAvatar(
+                    child: CircleAvatar(
                       radius: 56,
                       backgroundColor: SchoolGridTheme.primary,
                       child: Text(
-                        'SM',
-                        style: TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
+                        initial,
+                        style: const TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -58,22 +71,27 @@ class ParentProfileScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 70),
-            const Text(
-              'Mr. Sunil Mehta',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+            Text(
+              profile?.fullName ?? 'Parent Name',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
             ),
-            const Text(
-              'Parent',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+            Text(
+              profile?.role.toUpperCase() ?? 'PARENT',
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
             ),
             const SizedBox(height: 24),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: _ParentInfoCard(),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: _ParentContactCard(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ParentContactCard(
+                phone: profile?.phone ?? 'Not provided',
+                email: profile?.email ?? 'Not provided',
+                childrenStr: childrenStr,
+                parentId: profile?.id.substring(0, 8).toUpperCase() ?? 'N/A',
+              ),
             ),
             const SizedBox(height: 24),
             Padding(
@@ -96,7 +114,8 @@ class ParentProfileScreen extends StatelessWidget {
             const SizedBox(height: 32),
           ],
         ),
-      ),
+      );
+      }),
     );
   }
 }
@@ -142,22 +161,32 @@ class _ParentInfoCard extends StatelessWidget {
 }
 
 class _ParentContactCard extends StatelessWidget {
-  const _ParentContactCard();
+  final String phone;
+  final String email;
+  final String childrenStr;
+  final String parentId;
+
+  const _ParentContactCard({
+    required this.phone,
+    required this.email,
+    required this.childrenStr,
+    required this.parentId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: const Padding(
-        padding: EdgeInsets.all(16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _InfoRow(label: 'Phone', value: '+91 98765 12345'),
-            Divider(),
-            _InfoRow(label: 'Email', value: 'sunil.mehta@gmail.com'),
-            Divider(),
-            _InfoRow(label: 'Children', value: 'Rahul (8A), Priya (5B)'),
-            Divider(),
-            _InfoRow(label: 'Parent ID', value: 'PAR-2024-015'),
+            _InfoRow(label: 'Phone', value: phone),
+            const Divider(),
+            _InfoRow(label: 'Email', value: email),
+            const Divider(),
+            _InfoRow(label: 'Children', value: childrenStr),
+            const Divider(),
+            _InfoRow(label: 'Parent ID', value: parentId),
           ],
         ),
       ),

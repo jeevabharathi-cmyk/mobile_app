@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -80,6 +81,8 @@ class UserService extends ChangeNotifier {
   List<TeacherClass> _teacherClasses = [];
   List<ChildInfo> _children = [];
   bool _isLoading = false;
+  StreamSubscription? _teacherAssignmentsSubscription;
+  StreamSubscription? _teacherTableSubscription;
 
   UserProfile? get profile => _profile;
   String? get teacherId => _teacherId;
@@ -143,7 +146,27 @@ class UserService extends ChangeNotifier {
       _teacherId = teacherRes['id'];
       final teacherId = _teacherId;
 
-      // 2. Fetch teacher assignments with IDs and names
+      // 1. Setup real-time listener for the teacher's own record (to catch array updates)
+      _teacherTableSubscription?.cancel();
+      _teacherTableSubscription = _supabase
+          .from('teachers')
+          .stream(primaryKey: ['id'])
+          .eq('id', teacherId!)
+          .listen((data) {
+            debugPrint('Real-time: Teacher record changed for $teacherId');
+            _fetchTeacherData(); 
+          });
+
+      // 2. Fetch all classes, sections, and subjects for lookup
+      final classesRes = await _supabase.from('classes').select('id, name');
+      final sectionsRes = await _supabase.from('sections').select('id, name, class_id');
+      final subjectsRes = await _supabase.from('subjects').select('id, name');
+
+      final List<dynamic> allAddClasses = classesRes as List;
+      final List<dynamic> allAddSections = sectionsRes as List;
+      final List<dynamic> allAddSubjects = subjectsRes as List;
+
+      // 3. Fetch teacher assignments with IDs and names
       final response = await _supabase
           .from('teacher_assignments')
           .select('''
@@ -156,7 +179,7 @@ class UserService extends ChangeNotifier {
           ''')
           .eq('teacher_id', teacherId as Object);
 
-      _teacherClasses = (response as List).map((item) {
+      final List<TeacherClass> assignments = (response as List).map((item) {
         final className = item['classes']['name'];
         final sectionName = item['sections']['name'];
         final subjectName = item['subjects']['name'];
@@ -169,6 +192,65 @@ class UserService extends ChangeNotifier {
           schedule: 'Assigned',
         );
       }).toList();
+
+      // Look into teachers table classes array to see if any are not in teacher_assignments
+      // We need to fetch the classes array from a fresh query since the first one was limited
+      final teacherArrRes = await _supabase.from('teachers').select('classes, subjects').eq('id', teacherId).single();
+      final List<dynamic> teacherClassesArr = teacherArrRes['classes'] ?? [];
+      final List<dynamic> teacherSubjectsArr = teacherArrRes['subjects'] ?? [];
+
+      for (var clsName in teacherClassesArr) {
+        final String nameStr = clsName.toString().toLowerCase();
+        bool exists = assignments.any((a) => a.className.toLowerCase().contains(nameStr));
+        
+        if (!exists) {
+          final matchedClass = allAddClasses.firstWhere(
+            (c) => c['name'].toString().toLowerCase().contains(nameStr),
+            orElse: () => <String, dynamic>{},
+          );
+
+          if (matchedClass.isNotEmpty) {
+            final classId = matchedClass['id'] ?? '';
+            final matchedSection = allAddSections.firstWhere(
+              (s) => s['class_id'] == classId,
+              orElse: () => <String, dynamic>{},
+            );
+            final sectionId = matchedSection['id'] ?? '';
+            
+            final String subjectName = teacherSubjectsArr.isNotEmpty ? teacherSubjectsArr[0].toString() : 'General';
+            final matchedSubject = allAddSubjects.firstWhere(
+              (s) => s['name'].toString().toLowerCase() == subjectName.toLowerCase(),
+              orElse: () => <String, dynamic>{},
+            );
+            final subjectId = matchedSubject['id'] ?? '';
+
+            if (classId.toString().isNotEmpty) {
+              assignments.add(TeacherClass(
+                classId: classId,
+                sectionId: sectionId,
+                subjectId: subjectId,
+                className: matchedClass['name'] ?? 'Class',
+                subject: subjectName,
+                schedule: 'Admin Assigned',
+              ));
+            }
+          }
+        }
+      }
+
+      _teacherClasses = assignments;
+      notifyListeners();
+
+      // 3. Setup real-time listener for assignments
+      _teacherAssignmentsSubscription?.cancel();
+      _teacherAssignmentsSubscription = _supabase
+          .from('teacher_assignments')
+          .stream(primaryKey: ['id'])
+          .eq('teacher_id', teacherId)
+          .listen((data) {
+            debugPrint('Real-time: Teacher assignments changed for $teacherId');
+            _fetchTeacherData();
+          });
     } catch (e) {
       debugPrint('Error fetching teacher data: $e');
     }
@@ -207,8 +289,8 @@ class UserService extends ChangeNotifier {
         return ChildInfo(
           studentId: student['id'] ?? '',
           parentId: link['parent_id'] ?? '',
-          classId: student['class_id'] ?? '',
-          sectionId: student['section_id'] ?? '',
+          classId: (student['class_id'] ?? '').toString().trim(),
+          sectionId: (student['section_id'] ?? '').toString().trim(),
           fullName: student['name'] ?? 'Unknown',
           className: classes?['name'] ?? 'N/A',
           sectionName: sections?['name'] ?? '',
@@ -225,6 +307,17 @@ class UserService extends ChangeNotifier {
     _profile = null;
     _teacherClasses = [];
     _children = [];
+    _teacherAssignmentsSubscription?.cancel();
+    _teacherAssignmentsSubscription = null;
+    _teacherTableSubscription?.cancel();
+    _teacherTableSubscription = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _teacherAssignmentsSubscription?.cancel();
+    _teacherTableSubscription?.cancel();
+    super.dispose();
   }
 }

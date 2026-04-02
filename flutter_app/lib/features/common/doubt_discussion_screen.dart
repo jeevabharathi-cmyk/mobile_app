@@ -34,15 +34,24 @@ class _DoubtDiscussionScreenState extends State<DoubtDiscussionScreen> {
     
     if (!widget.isTeacher) {
       if (widget.studentId != null && widget.parentId != null) {
-        await service.addDoubt(
+        final success = await service.addDoubt(
           homeworkId: widget.homeworkId,
           studentId: widget.studentId!,
           parentId: widget.parentId!,
           content: content,
         );
+        
+        if (mounted) {
+          if (success) {
+            _textController.clear();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to send doubt. Please try again.')),
+            );
+          }
+        }
       }
     }
-    _textController.clear();
   }
 
   void _showReplyDialog(Doubt doubt) {

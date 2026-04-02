@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme.dart';
 
@@ -18,6 +19,8 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
   final _descriptionController = TextEditingController();
   String? _selectedClassKey; // composite key: "classId|sectionId|subjectId"
   DateTime? _dueDate;
+  List<PlatformFile> _attachments = [];
+  bool _isPosting = false;
 
   String _classKey(TeacherClass c) => '${c.classId}|${c.sectionId}|${c.subjectId}';
 
@@ -49,8 +52,27 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
     );
   }
 
-  void _handlePostHomework() {
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.any,
+    );
+    if (result != null) {
+      setState(() {
+        _attachments.addAll(result.files);
+      });
+    }
+  }
+
+  void _removeAttachment(int index) {
+    setState(() {
+      _attachments.removeAt(index);
+    });
+  }
+
+  Future<void> _handlePostHomework() async {
     final userService = context.read<UserService>();
+    final homeworkService = context.read<HomeworkService>();
     final selected = _findClassByKey(userService.teacherClasses, _selectedClassKey);
 
     if (_titleController.text.isEmpty || _descriptionController.text.isEmpty || _dueDate == null || selected == null) {
@@ -63,23 +85,47 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
     final teacherId = userService.teacherId;
     if (teacherId == null) return;
 
-    context.read<HomeworkService>().postHomework(
-      title: _titleController.text,
-      description: _descriptionController.text,
-      classId: selected.classId,
-      sectionId: selected.sectionId,
-      subjectId: selected.subjectId,
-      teacherId: teacherId,
-      dueDate: _dueDate!,
-    );
+    setState(() => _isPosting = true);
 
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Homework posted successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    try {
+      final success = await homeworkService.postHomework(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        classId: selected.classId,
+        sectionId: selected.sectionId,
+        subjectId: selected.subjectId,
+        teacherId: teacherId,
+        dueDate: _dueDate!,
+        attachments: _attachments,
+      );
+
+      if (mounted) {
+        setState(() => _isPosting = false);
+        if (success) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Homework posted successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to post homework. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isPosting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -213,6 +259,44 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
                 ),
               ),
             ),
+            if (_attachments.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Attachments',
+                style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF334155), fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              ...List.generate(_attachments.length, (index) {
+                final file = _attachments[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(LucideIcons.file, size: 16, color: Color(0xFF64748B)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          file.name,
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                        onPressed: () => _removeAttachment(index),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -230,7 +314,7 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
                   ),
                 ),
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: _isPosting ? null : _pickFiles,
                   icon: const Icon(LucideIcons.paperclip, size: 18),
                   label: const Text('Attach Files'),
                 ),
@@ -240,9 +324,15 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _handlePostHomework,
-                icon: const Icon(LucideIcons.send, size: 18),
-                label: const Text('Post Homework'),
+                onPressed: _isPosting ? null : _handlePostHomework,
+                icon: _isPosting 
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(LucideIcons.send, size: 18),
+                label: Text(_isPosting ? 'Posting...' : 'Post Homework'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: SchoolGridTheme.primary,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ),
           ],

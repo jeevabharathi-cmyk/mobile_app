@@ -59,7 +59,10 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
 
     final homeworks = selectedChild == null 
         ? <Homework>[] 
-        : homeworkService.homeworks.where((h) => h.className.contains(selectedChild.className)).toList();
+        : homeworkService.homeworks.where((h) {
+            return h.classId.trim() == selectedChild.classId.trim() && 
+                   h.sectionId.trim() == selectedChild.sectionId.trim();
+          }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -307,14 +310,20 @@ class HomeworkCard extends StatelessWidget {
                   )
                 else
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (selectedChild != null) {
-                        context.read<HomeworkService>().acknowledgeHomework(
+                        final success = await context.read<HomeworkService>().acknowledgeHomework(
                           homeworkId: homework.id,
                           studentId: selectedChild!.studentId,
                           studentName: selectedChild!.fullName,
                           applicationNumber: 'APP-${selectedChild!.studentId.substring(0, 8)}',
                         );
+                        
+                        if (context.mounted && !success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to acknowledge homework.')),
+                          );
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(

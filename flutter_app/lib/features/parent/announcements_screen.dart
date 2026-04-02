@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import 'parent_profile_overlay.dart';
+import 'package:provider/provider.dart';
+import '../../core/services/announcement_service.dart';
+import '../common/announcement_card.dart';
+import 'package:intl/intl.dart';
 
 class ParentNewsScreen extends StatelessWidget {
   const ParentNewsScreen({super.key});
+
+  String _formatDate(DateTime date) {
+    return DateFormat('MMM d, h:mm a').format(date.toLocal());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +42,13 @@ class ParentNewsScreen extends StatelessWidget {
               padding: const EdgeInsets.only(right: 16.0),
               child: Row(
                 children: [
-                  const CircleAvatar(
+                   CircleAvatar(
                     radius: 16,
                     backgroundColor: SchoolGridTheme.primary,
-                    child: Text('SM', style: TextStyle(fontSize: 12, color: Colors.white)),
+                    child: Text('P', style: const TextStyle(fontSize: 12, color: Colors.white)),
                   ),
                   const SizedBox(width: 8),
-                  const Text('Sunil', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+                   Text('Parent', style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
                   const Icon(Icons.keyboard_arrow_down, color: Colors.black54),
                 ],
               ),
@@ -51,32 +59,57 @@ class ParentNewsScreen extends StatelessWidget {
         foregroundColor: SchoolGridTheme.primary,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Announcements',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            const AnnouncementCard(
-              title: 'Annual Day Preparations',
-              date: 'Feb 20',
-              content: 'Rehearsals begin next week for all participating students...',
-            ),
-            const AnnouncementCard(
-              title: 'Parent-Teacher Meeting',
-              date: 'Feb 25',
-              content: 'PTM scheduled for classes 5-10 on Saturday...',
-            ),
-            const AnnouncementCard(
-              title: 'Sports Day Registration',
-              date: 'Feb 18',
-              content: 'Register your child for upcoming sports events...',
-            ),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () async => context.read<AnnouncementService>().fetchAnnouncements(),
+        child: Consumer<AnnouncementService>(
+          builder: (context, service, _) {
+            if (service.isLoading && service.announcements.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final announcements = service.announcements;
+
+            if (announcements.isEmpty) {
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                   height: MediaQuery.of(context).size.height - kToolbarHeight - 100,
+                   child: const Center(
+                     child: Text('No announcements posted yet.', style: TextStyle(color: Colors.grey)),
+                   ),
+                ),
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'Announcements',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: announcements.length,
+                    itemBuilder: (context, index) {
+                      final ann = announcements[index];
+                      return AnnouncementCard(
+                        title: ann.title,
+                        date: _formatDate(ann.createdAt),
+                        content: ann.content,
+                        priority: ann.priority,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -88,55 +121,3 @@ class ParentNewsScreen extends StatelessWidget {
   }
 }
 
-class AnnouncementCard extends StatelessWidget {
-  final String title;
-  final String date;
-  final String content;
-
-  const AnnouncementCard({
-    super.key,
-    required this.title,
-    required this.date,
-    required this.content,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Text(
-                  date,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              content,
-              style: const TextStyle(color: Color(0xFF64748B)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

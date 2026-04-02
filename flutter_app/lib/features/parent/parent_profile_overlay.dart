@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 
+import 'package:provider/provider.dart';
+import '../../core/services/user_service.dart';
+
 class ParentProfileOverlay extends StatelessWidget {
   const ParentProfileOverlay({super.key});
 
@@ -11,57 +14,64 @@ class ParentProfileOverlay extends StatelessWidget {
       alignment: Alignment.topRight,
       insetPadding: const EdgeInsets.only(top: 60, right: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        width: 320,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: SchoolGridTheme.primary,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Color(0x33FFFFFF),
-                    child: Text('SM', style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold)),
+      child: Consumer<UserService>(
+        builder: (context, userService, _) {
+          final profile = userService.profile;
+          final initial = profile?.fullName.isNotEmpty == true 
+              ? profile!.fullName.substring(0, 1).toUpperCase() 
+              : '?';
+
+          return Container(
+            width: 320,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: SchoolGridTheme.primary,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Sunil Mehta',
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: const Color(0x33FFFFFF),
+                        child: Text(initial, style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile?.fullName ?? 'Parent',
+                              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              profile?.email ?? 'No email provided',
+                              style: const TextStyle(color: Color(0xCCFFFFFF), fontSize: 13),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0x33FFFFFF),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                profile?.role.toUpperCase() ?? 'PARENT',
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
                         ),
-                        const Text(
-                          'sunil.mehta@gmail.com',
-                          style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 13),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0x33FFFFFF),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'PARENT',
-                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
             const SizedBox(height: 24),
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -102,7 +112,8 @@ class ParentProfileOverlay extends StatelessWidget {
             _buildMenuItem(context, Icons.logout, 'Logout', color: Colors.red),
           ],
         ),
-      ),
+      );
+      }),
     );
   }
 
