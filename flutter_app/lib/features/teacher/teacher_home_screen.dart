@@ -11,6 +11,7 @@ import '../common/doubt_discussion_screen.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/services/user_service.dart';
+import '../../core/services/notification_service.dart';
 
 class TeacherHomeScreen extends StatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -57,9 +58,16 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen> {
       appBar: AppBar(
         title: const Text('SchoolConnect'),
         actions: [
-          IconButton(icon: const Icon(LucideIcons.bell), onPressed: () {
-            context.push('/teacher-announcements');
-          }),
+          Consumer<NotificationService>(
+            builder: (context, notificationService, _) => Badge(
+              label: Text(notificationService.unreadCount.toString()),
+              isLabelVisible: notificationService.unreadCount > 0,
+              child: IconButton(
+                icon: const Icon(LucideIcons.bell),
+                onPressed: () => context.push('/notifications'),
+              ),
+            ),
+          ),
           CircleAvatar(
             backgroundColor: SchoolGridTheme.primary,
             child: Text(

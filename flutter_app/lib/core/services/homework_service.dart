@@ -250,6 +250,8 @@ class HomeworkService extends ChangeNotifier {
       debugPrint('Error acknowledging homework: $e');
       return false;
     }
+  }
+
   @override
   void dispose() {
     _stopRealtime();

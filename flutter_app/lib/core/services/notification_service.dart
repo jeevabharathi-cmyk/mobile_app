@@ -1,20 +1,107 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
 
-class NotificationService {
-  NotificationService._();
-  static final NotificationService instance = NotificationService._();
+class NotificationModel {
+  final String id;
+  final String title;
+  final String body;
+  final String? type;
+  final DateTime sentAt;
+  bool delivered;
 
-  void notifyTeacher(String title, String body) {
-    // In a real app, this would use FCM or a similar service
-    debugPrint('NOTIFICATION [TEACHER]: $title - $body');
+  NotificationModel({
+    required this.id,
+    required this.title,
+    required this.body,
+    this.type,
+    required this.sentAt,
+    this.delivered = false,
+  });
+
+  factory NotificationModel.fromMap(Map<String, dynamic> map) {
+    return NotificationModel(
+      id: map['id'],
+      title: map['title'] ?? '',
+      body: map['body'] ?? '',
+      type: map['type']?.toString(),
+      sentAt: DateTime.parse(map['sent_at'] ?? DateTime.now().toIso8601String()),
+      delivered: map['delivered'] ?? false,
+    );
+  }
+}
+
+class NotificationService extends ChangeNotifier {
+  final _supabase = Supabase.instance.client;
+  List<NotificationModel> _notifications = [];
+  StreamSubscription? _subscription;
+  bool _isLoading = false;
+
+  List<NotificationModel> get notifications => List.unmodifiable(_notifications);
+  int get unreadCount => _notifications.where((n) => !n.delivered).length;
+  bool get isLoading => _isLoading;
+
+  NotificationService() {
+    _initRealtime();
   }
 
-  void notifyStudent(String studentId, String title, String body) {
-    // In a real app, this would target a specific student
-    debugPrint('NOTIFICATION [STUDENT ID=$studentId]: $title - $body');
+  void _initRealtime() {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    _subscription?.cancel();
+    _subscription = _supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', user.id)
+        .order('sent_at', ascending: false)
+        .listen((data) {
+          _notifications = data.map((n) => NotificationModel.fromMap(n)).toList();
+          notifyListeners();
+        });
+  }
+
+  Future<void> fetchNotifications() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await _supabase
+          .from('notifications')
+          .select()
+          .eq('user_id', user.id)
+          .order('sent_at', ascending: false);
+      
+      _notifications = (response as List).map((n) => NotificationModel.fromMap(n)).toList();
+    } catch (e) {
+      debugPrint('Error fetching notifications: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> markAsRead(String notificationId) async {
+    try {
+      await _supabase
+          .from('notifications')
+          .update({'delivered': true})
+          .eq('id', notificationId);
+    } catch (e) {
+      debugPrint('Error marking notification as read: $e');
+    }
   }
 
   void logEvent(String role, String event, String details) {
     debugPrint('EVENT LOG [$role]: $event - $details');
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 }

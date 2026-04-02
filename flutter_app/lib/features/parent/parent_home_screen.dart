@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import 'package:go_router/go_router.dart';
 import 'parent_profile_overlay.dart';
 
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import '../common/doubt_discussion_screen.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/services/user_service.dart';
+import '../../core/services/notification_service.dart';
 
 class ParentHomeScreen extends StatefulWidget {
   const ParentHomeScreen({super.key});
@@ -79,7 +81,16 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         ),
         title: const Text('SchoolConnect'),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications_none), onPressed: () {}),
+          Consumer<NotificationService>(
+            builder: (context, notificationService, _) => Badge(
+              label: Text(notificationService.unreadCount.toString()),
+              isLabelVisible: notificationService.unreadCount > 0,
+              child: IconButton(
+                icon: const Icon(Icons.notifications_none),
+                onPressed: () => context.push('/notifications'),
+              ),
+            ),
+          ),
           GestureDetector(
             onTap: () {
               showDialog(

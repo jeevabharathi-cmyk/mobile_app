@@ -7,6 +7,7 @@ import 'core/supabase_config.dart';
 import 'core/services/user_service.dart';
 import 'core/services/homework_service.dart';
 import 'core/services/announcement_service.dart';
+import 'core/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => HomeworkService()),
         ChangeNotifierProvider(create: (_) => UserService()),
         ChangeNotifierProvider(create: (_) => AnnouncementService()),
+        ChangeNotifierProvider(create: (_) => NotificationService()),
       ],
       child: const SchoolGridApp(),
     ),

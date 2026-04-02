@@ -84,6 +84,7 @@ class UserService extends ChangeNotifier {
   StreamSubscription? _teacherAssignmentsSubscription;
   StreamSubscription? _teacherTableSubscription;
   StreamSubscription? _parentLinksSubscription;
+  StreamSubscription? _profileSubscription;
 
   UserProfile? get profile => _profile;
   String? get teacherId => _teacherId;
@@ -106,6 +107,19 @@ class UserService extends ChangeNotifier {
           .single();
       
       _profile = UserProfile.fromMap(response);
+
+      // Setup real-time listener for profile changes
+      _profileSubscription?.cancel();
+      _profileSubscription = _supabase
+          .from('profiles')
+          .stream(primaryKey: ['id'])
+          .eq('id', user.id)
+          .listen((data) {
+            if (data.isNotEmpty) {
+              _profile = UserProfile.fromMap(data[0]);
+              notifyListeners();
+            }
+          });
 
       if (_profile?.role == 'teacher') {
         await _fetchTeacherData();
@@ -207,7 +221,7 @@ class UserService extends ChangeNotifier {
 
       // Look into teachers table classes array to see if any are not in teacher_assignments
       // We need to fetch the classes array from a fresh query since the first one was limited
-      final teacherArrRes = await _supabase.from('teachers').select('classes, subjects').eq('id', teacherId).single();
+      final teacherArrRes = await _supabase.from('teachers').select('classes, subjects').eq('id', teacherId as Object).single();
       final List<dynamic> teacherClassesArr = teacherArrRes['classes'] ?? [];
       final List<dynamic> teacherSubjectsArr = teacherArrRes['subjects'] ?? [];
 
@@ -382,6 +396,8 @@ class UserService extends ChangeNotifier {
     _teacherTableSubscription = null;
     _parentLinksSubscription?.cancel();
     _parentLinksSubscription = null;
+    _profileSubscription?.cancel();
+    _profileSubscription = null;
     _lastSubscribedTeacherId = null;
     _lastSubscribedParentId = null;
     notifyListeners();
@@ -392,6 +408,7 @@ class UserService extends ChangeNotifier {
     _teacherAssignmentsSubscription?.cancel();
     _teacherTableSubscription?.cancel();
     _parentLinksSubscription?.cancel();
+    _profileSubscription?.cancel();
     super.dispose();
   }
 }
