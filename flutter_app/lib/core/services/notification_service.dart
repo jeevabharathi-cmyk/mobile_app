@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 
-class NotificationModel {
+class AppNotificationModel {
   final String id;
   final String title;
   final String body;
@@ -10,7 +10,7 @@ class NotificationModel {
   final DateTime sentAt;
   bool delivered;
 
-  NotificationModel({
+  AppNotificationModel({
     required this.id,
     required this.title,
     required this.body,
@@ -19,8 +19,8 @@ class NotificationModel {
     this.delivered = false,
   });
 
-  factory NotificationModel.fromMap(Map<String, dynamic> map) {
-    return NotificationModel(
+  factory AppNotificationModel.fromMap(Map<String, dynamic> map) {
+    return AppNotificationModel(
       id: map['id'],
       title: map['title'] ?? '',
       body: map['body'] ?? '',
@@ -31,17 +31,17 @@ class NotificationModel {
   }
 }
 
-class NotificationService extends ChangeNotifier {
+class AppNotificationService extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
-  List<NotificationModel> _notifications = [];
+  List<AppNotificationModel> _notifications = [];
   StreamSubscription? _subscription;
   bool _isLoading = false;
 
-  List<NotificationModel> get notifications => List.unmodifiable(_notifications);
+  List<AppNotificationModel> get notifications => List.unmodifiable(_notifications);
   int get unreadCount => _notifications.where((n) => !n.delivered).length;
   bool get isLoading => _isLoading;
 
-  NotificationService() {
+  AppNotificationService() {
     _initRealtime();
   }
 
@@ -56,7 +56,7 @@ class NotificationService extends ChangeNotifier {
         .eq('user_id', user.id)
         .order('sent_at', ascending: false)
         .listen((data) {
-          _notifications = data.map((n) => NotificationModel.fromMap(n)).toList();
+          _notifications = data.map((n) => AppNotificationModel.fromMap(n)).toList();
           notifyListeners();
         });
   }
@@ -75,7 +75,7 @@ class NotificationService extends ChangeNotifier {
           .eq('user_id', user.id)
           .order('sent_at', ascending: false);
       
-      _notifications = (response as List).map((n) => NotificationModel.fromMap(n)).toList();
+      _notifications = (response as List).map((n) => AppNotificationModel.fromMap(n)).toList();
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
     } finally {

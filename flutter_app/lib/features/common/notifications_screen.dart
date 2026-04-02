@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/services/notification_service.dart';
+import 'package:schoolgrid_central/core/services/notification_service.dart';
 import '../../core/theme.dart';
 import 'package:intl/intl.dart';
 
@@ -16,13 +16,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<NotificationService>().fetchNotifications();
+      context.read<AppNotificationService>().fetchNotifications();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final notificationService = context.watch<NotificationService>();
+    final notificationService = context.watch<AppNotificationService>();
     final notifications = notificationService.notifications;
 
     return Scaffold(
@@ -56,7 +56,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 }
 
 class _NotificationCard extends StatelessWidget {
-  final NotificationModel notification;
+  final AppNotificationModel notification;
 
   const _NotificationCard({required this.notification});
 
@@ -93,7 +93,7 @@ class _NotificationCard extends StatelessWidget {
         ),
         onTap: () {
           if (!notification.delivered) {
-            context.read<NotificationService>().markAsRead(notification.id);
+            context.read<AppNotificationService>().markAsRead(notification.id);
           }
         },
       ),

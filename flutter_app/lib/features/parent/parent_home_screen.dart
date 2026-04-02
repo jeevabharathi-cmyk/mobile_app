@@ -81,7 +81,7 @@ class _ParentHomeScreenState extends State<ParentHomeScreen> {
         ),
         title: const Text('SchoolConnect'),
         actions: [
-          Consumer<NotificationService>(
+          Consumer<AppNotificationService>(
             builder: (context, notificationService, _) => Badge(
               label: Text(notificationService.unreadCount.toString()),
               isLabelVisible: notificationService.unreadCount > 0,

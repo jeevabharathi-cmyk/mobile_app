@@ -23,7 +23,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => HomeworkService()),
         ChangeNotifierProvider(create: (_) => UserService()),
         ChangeNotifierProvider(create: (_) => AnnouncementService()),
-        ChangeNotifierProvider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => AppNotificationService()),
       ],
       child: const SchoolGridApp(),
     ),
