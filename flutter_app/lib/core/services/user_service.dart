@@ -83,6 +83,7 @@ class UserService extends ChangeNotifier {
   bool _isLoading = false;
   StreamSubscription? _teacherAssignmentsSubscription;
   StreamSubscription? _teacherTableSubscription;
+  StreamSubscription? _parentLinksSubscription;
 
   UserProfile? get profile => _profile;
   String? get teacherId => _teacherId;
@@ -109,6 +110,7 @@ class UserService extends ChangeNotifier {
       if (_profile?.role == 'teacher') {
         await _fetchTeacherData();
       } else if (_profile?.role == 'parent') {
+        _setupParentRealtime(_profile!.id);
         await _fetchParentData();
       }
     } catch (e) {
@@ -305,6 +307,24 @@ class UserService extends ChangeNotifier {
         });
   }
 
+  String? _lastSubscribedParentId;
+  void _setupParentRealtime(String parentId) {
+    if (_lastSubscribedParentId == parentId) return;
+    _lastSubscribedParentId = parentId;
+
+    debugPrint('Setting up real-time for parent: $parentId');
+
+    _parentLinksSubscription?.cancel();
+    _parentLinksSubscription = _supabase
+        .from('student_parents')
+        .stream(primaryKey: ['student_id', 'parent_id'])
+        .eq('parent_id', parentId)
+        .listen((data) {
+          debugPrint('Real-time: Parent student links changed for $parentId');
+          _fetchParentData();
+        });
+  }
+
   Future<void> _fetchParentData() async {
     try {
       debugPrint('Fetching parent data for profile: ${_profile!.id}');
@@ -360,6 +380,10 @@ class UserService extends ChangeNotifier {
     _teacherAssignmentsSubscription = null;
     _teacherTableSubscription?.cancel();
     _teacherTableSubscription = null;
+    _parentLinksSubscription?.cancel();
+    _parentLinksSubscription = null;
+    _lastSubscribedTeacherId = null;
+    _lastSubscribedParentId = null;
     notifyListeners();
   }
 
@@ -367,6 +391,7 @@ class UserService extends ChangeNotifier {
   void dispose() {
     _teacherAssignmentsSubscription?.cancel();
     _teacherTableSubscription?.cancel();
+    _parentLinksSubscription?.cancel();
     super.dispose();
   }
 }
