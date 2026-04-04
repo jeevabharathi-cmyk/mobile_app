@@ -255,7 +255,7 @@ class UserService extends ChangeNotifier {
             final classId = matchedClass['id'] ?? '';
             final matchedSection = allAddSections.firstWhere(
               (s) => s['class_id'] == classId,
-              orElse: () => <String, dynamic>{},
+              orElse: () => allAddSections.isNotEmpty ? allAddSections[0] : <String, dynamic>{},
             );
             final sectionId = matchedSection['id'] ?? '';
             
@@ -263,22 +263,21 @@ class UserService extends ChangeNotifier {
             final matchedSubject = allAddSubjects.firstWhere(
               (s) {
                 final dbSub = s['name'].toString().toLowerCase();
-                return dbSub == subjectName.toLowerCase() || 
-                       dbSub.contains(subjectName.toLowerCase()) || 
-                       subjectName.toLowerCase().contains(dbSub);
+                final trSub = subjectName.toLowerCase();
+                return dbSub == trSub || dbSub.contains(trSub) || trSub.contains(dbSub);
               },
-              orElse: () => <String, dynamic>{},
+              orElse: () => allAddSubjects.isNotEmpty ? allAddSubjects[0] : <String, dynamic>{},
             );
             final subjectId = matchedSubject['id'] ?? '';
             debugPrint('Matched subject for $subjectName: $matchedSubject');
 
             if (classId.toString().isNotEmpty) {
               assignments.add(TeacherClass(
-                classId: classId,
-                sectionId: sectionId,
-                subjectId: subjectId,
+                classId: classId.toString(),
+                sectionId: sectionId.toString(),
+                subjectId: subjectId.toString(),
                 className: matchedClass['name'] ?? 'Class',
-                subject: subjectName,
+                subject: matchedSubject['name'] ?? subjectName,
                 schedule: 'Admin Assigned',
               ));
             }

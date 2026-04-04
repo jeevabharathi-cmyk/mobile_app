@@ -178,17 +178,23 @@ class HomeworkService extends ChangeNotifier {
     List<PlatformFile>? attachments,
   }) async {
     try {
-      final response = await _supabase.from('homework').insert({
-        'teacher_id': teacherId,
-        'class_id': classId,
-        'section_id': sectionId,
-        'subject_id': subjectId,
+      // Ensure we don't pass empty strings to UUID columns (Postgres rejects them)
+      final Map<String, dynamic> insertData = {
+        'teacher_id': teacherId.isEmpty ? null : teacherId,
+        'class_id': classId.isEmpty ? null : classId,
+        'section_id': sectionId.isEmpty ? null : sectionId,
+        'subject_id': subjectId.isEmpty ? null : subjectId,
         'title': title,
         'description': description,
         'due_date': '${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}',
-      }).select().single();
+      };
+
+      debugPrint('>>> Attempting to post homework: $insertData');
+
+      final response = await _supabase.from('homework').insert(insertData).select().single();
       
       final homeworkId = response['id'];
+      debugPrint('>>> Homework inserted successfully, ID: $homeworkId');
 
       // Handle attachments if any
       if (attachments != null && attachments.isNotEmpty) {
@@ -217,10 +223,13 @@ class HomeworkService extends ChangeNotifier {
       }
       
       await fetchHomework(teacherId: teacherId);
-      debugPrint('Event: Homework Posted');
+      debugPrint('Event: Homework Posted successfully');
       return true;
     } catch (e) {
-      debugPrint('Error posting homework: $e');
+      debugPrint('CRITICAL Error posting homework: $e');
+      if (e is PostgrestException) {
+        debugPrint('Postgrest error details: ${e.message}, ${e.details}, ${e.hint}');
+      }
       return false;
     }
   }

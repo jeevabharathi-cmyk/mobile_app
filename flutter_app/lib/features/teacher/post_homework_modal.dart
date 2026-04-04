@@ -82,8 +82,24 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
       return;
     }
 
+    // Additional validation for UUID fields
+    if (selected.classId.isEmpty || selected.sectionId.isEmpty || selected.subjectId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: Selected class is missing required information (${selected.classId.isEmpty ? "Class ID" : selected.sectionId.isEmpty ? "Section ID" : "Subject ID"}). Please contact admin.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     final teacherId = userService.teacherId;
-    if (teacherId == null) return;
+    if (teacherId == null || teacherId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Teacher ID not found. Please re-login.')),
+      );
+      return;
+    }
 
     setState(() => _isPosting = true);
 
@@ -112,7 +128,7 @@ class _PostHomeworkModalState extends State<PostHomeworkModal> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to post homework. Please try again.'),
+              content: Text('Failed to post homework. Check logs for details.'),
               backgroundColor: Colors.red,
             ),
           );

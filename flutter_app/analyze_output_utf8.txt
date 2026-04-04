@@ -1,35 +1,37 @@
 ﻿Analyzing flutter_app...                                        
 
+warning - Unused import: 'package:flutter/foundation.dart' - lib\core\models\announcement_models.dart:1:8 - unused_import
 warning - Unused import: 'package:flutter/foundation.dart' - lib\core\models\homework_models.dart:1:8 - unused_import
-warning - Unused import: 'notification_service.dart' - lib\core\services\homework_service.dart:4:8 - unused_import
-   info - Don't use 'BuildContext's across async gaps - lib\features\common\doubt_discussion_screen.dart:73:29 - use_build_context_synchronously
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\common\doubt_discussion_screen.dart:210:41 - deprecated_member_use
-   info - Don't use 'BuildContext's across async gaps - lib\features\parent\parent_home_screen.dart:28:26 - use_build_context_synchronously
-   info - Don't use 'BuildContext's across async gaps - lib\features\parent\parent_home_screen.dart:31:11 - use_build_context_synchronously
+warning - Unused import: 'notification_service.dart' - lib\core\services\homework_service.dart:6:8 - unused_import
+   info - Don't use 'BuildContext's across async gaps - lib\features\common\doubt_discussion_screen.dart:83:29 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\common\doubt_discussion_screen.dart:220:41 - deprecated_member_use
+warning - Unused import: '../../core/theme.dart' - lib\features\common\notifications_screen.dart:4:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\parent\parent_help_center_screen.dart:257:33 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\features\parent\parent_home_screen.dart:30:26 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\parent\parent_home_screen.dart:33:11 - use_build_context_synchronously
    info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\teacher\help_center_screen.dart:261:33 - deprecated_member_use
-   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\features\teacher\post_homework_modal.dart:134:15 - deprecated_member_use
-   info - Don't use 'BuildContext's across async gaps - lib\features\teacher\teacher_home_screen.dart:28:25 - use_build_context_synchronously
-   info - Don't use 'BuildContext's across async gaps - lib\features\teacher\teacher_home_screen.dart:30:11 - use_build_context_synchronously
+   info - The private field _attachments could be 'final' - lib\features\teacher\post_homework_modal.dart:22:22 - prefer_final_fields
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\features\teacher\post_homework_modal.dart:210:15 - deprecated_member_use
+   info - Don't invoke 'print' in production code - lib\features\teacher\teacher_home_screen.dart:26:5 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\teacher\teacher_home_screen.dart:34:11 - avoid_print
+   info - Don't use 'BuildContext's across async gaps - lib\features\teacher\teacher_home_screen.dart:35:11 - use_build_context_synchronously
+   info - Don't invoke 'print' in production code - lib\features\teacher\teacher_home_screen.dart:37:11 - avoid_print
 warning - The value of the local variable 'teacherClasses' isn't used - lib\features\teacher\teacher_profile_screen.dart:14:11 - unused_local_variable
-warning - The value of the local variable 'userService' isn't used - lib\features\teacher\teacher_profile_screen.dart:130:11 - unused_local_variable
 
-flutter : 12 issues 
-found. (ran in 12.2s)
-At line:1 char:19
-+ flutter analyze ; 
-flutter analyze > 
-analyze_output.txt 
-2>&1 ; Get-Con ...
-+                   ~~~
+flutter : 17 issues 
+found. (ran in 7.9s)
+At line:1 char:1
++ flutter analyze > 
+analyze_output_final.txt 
+2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~
 ~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~
-    + CategoryInfo     
-         : NotSpecifi  
-  ed: (12 issues fou   
- nd. (ran in 12.2s)    
-:String) [], Remot    
-eException
-    + FullyQualifiedEr 
-   rorId : NativeComm  
-  andError
+    + CategoryInfo        
+      : NotSpecified: (1  
+  7 issues found. (ran    
+ in 7.9s):String) [],     
+RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
  
